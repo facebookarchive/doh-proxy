@@ -1,0 +1,10 @@
+---
+name: DOH Proxy
+description: A DNS-over-HTTPS Proxy
+repository: https://github.com/facebookexperimental/doh-proxy/
+theme: jekyll-theme-slate
+timezone: America/Los_Angeles
+sass:
+  style: compressed
+markdown: kramdown
+

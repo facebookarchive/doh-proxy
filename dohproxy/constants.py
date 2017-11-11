@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2018-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+#
+
+DOH_URI = '/.well-known/dns-query'
+DOH_MEDIA_TYPE = 'application/dns-udpwireformat'
+DOH_CONTENT_TYPE_PARAM = 'ct'
+DOH_BODY_PARAM = 'body'
+DOH_H2_NPN_PROTOCOLS = ['h2']
