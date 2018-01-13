@@ -6,7 +6,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
-import argparse
 import dns.message
 import hyper
 import urllib.parse
@@ -15,17 +14,7 @@ from dohproxy import constants, utils
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--domain',
-        default='localhost',
-        help='Domain to make DOH request against. Default: [%(default)s]'
-    )
-    parser.add_argument(
-        '--port',
-        default=443,
-        help='Port to connect to. Default: [%(default)s]'
-    )
+    parser = utils.client_parser_base()
     parser.add_argument(
         '--qname',
         default='example.com',
@@ -41,26 +30,6 @@ def parse_args():
         action='store_true',
         help='Enable DNSSEC validation.'
     )
-    parser.add_argument(
-        '--post',
-        action='store_true',
-        help='Use HTTP POST instead of GET.'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Prints some debugging output',
-    )
-    parser.add_argument(
-        '--uri',
-        default=constants.DOH_URI,
-        help='DNS API URI. Default [%(default)s]',
-    )
-    parser.add_argument(
-        '--insecure',
-        action='store_true',
-        help=argparse.SUPPRESS,
-    )
     return parser.parse_args()
 
 
@@ -72,25 +41,6 @@ def build_body(args):
     )
     dnsq.id = 0
     return dnsq.to_wire()
-
-
-def build_query_params(args):
-    body = build_body(args)
-    contenttype = constants.DOH_MEDIA_TYPE
-    return {
-        constants.DOH_BODY_PARAM: utils.doh_b64_encode(body),
-        constants.DOH_CONTENT_TYPE_PARAM: contenttype,
-    }
-
-
-def make_url(domain, uri):
-    p = urllib.parse.ParseResult(
-        scheme='https',
-        netloc=domain,
-        path=uri,
-        params='', query='', fragment='',
-    )
-    return urllib.parse.urlunparse(p)
 
 
 def main_sync(args):
@@ -109,10 +59,11 @@ def main_sync(args):
             body=body, headers=headers
         )
     else:
-        params = build_query_params(args)
+        body = build_body(args)
+        params = utils.build_query_params(body)
         params_str = urllib.parse.urlencode(params)
         if args.debug:
-            url = make_url(args.domain, args.uri)
+            url = utils.make_url(args.domain, args.uri)
             print('Sending {}?{}'.format(url, params_str))
         stream_id = connection.request(
             'GET', args.uri + '?' + params_str,

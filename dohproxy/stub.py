@@ -7,7 +7,6 @@
 # LICENSE file in the root directory of this source tree.
 #
 import aioh2
-import argparse
 import asyncio
 import dns.message
 import ssl
@@ -17,22 +16,7 @@ from dohproxy import constants, utils
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--domain',
-        default='localhost',
-        help='Domain to make DOH request against. Default: [%(default)s]'
-    )
-    parser.add_argument(
-        '--remote-address',
-        help='Remote address where the DOH proxy is running. '
-             'Default: [%(default)s]',
-    )
-    parser.add_argument(
-        '--port',
-        default=443,
-        help='Port to connect to. Default: [%(default)s]'
-    )
+    parser = utils.client_parser_base()
     parser.add_argument(
         '--listen-port',
         default=53,
@@ -44,49 +28,12 @@ def parse_args():
         help='The address the stub should listen on. Default: [%(default)s]'
     )
     parser.add_argument(
-        '--dnssec',
-        action='store_true',
-        help='Enable DNSSEC validation.'
+        '--remote-address',
+        help='Remote address where the DOH proxy is running. '
+             'Default: [%(default)s]',
     )
-    parser.add_argument(
-        '--post',
-        action='store_true',
-        help='Use HTTP POST instead of GET.'
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Prints some debugging output',
-    )
-    parser.add_argument(
-        '--uri',
-        default=constants.DOH_URI,
-        help='DNS API URI. Default [%(default)s]',
-    )
-    parser.add_argument(
-        '--insecure',
-        action='store_true',
-        help=argparse.SUPPRESS,
-    )
+
     return parser.parse_args()
-
-
-def build_query_params(query):
-    contenttype = constants.DOH_MEDIA_TYPE
-    return {
-        constants.DOH_BODY_PARAM: utils.doh_b64_encode(query),
-        constants.DOH_CONTENT_TYPE_PARAM: contenttype,
-    }
-
-
-def make_url(domain, uri):
-    p = urllib.parse.ParseResult(
-        scheme='https',
-        netloc=domain,
-        path=uri,
-        params='', query='', fragment='',
-    )
-    return urllib.parse.urlunparse(p)
 
 
 async def make_request(proto, args, addr, dnsq):
@@ -127,11 +74,11 @@ async def make_request(proto, args, addr, dnsq):
         headers.append(('content-type', constants.DOH_MEDIA_TYPE))
         body = dnsq.to_wire()
     else:
-        params = build_query_params(dnsq.to_wire())
+        params = utils.build_query_params(dnsq.to_wire())
         print(params)
         params_str = urllib.parse.urlencode(params)
         if args.debug:
-            url = make_url(args.domain, args.uri)
+            url = utils.make_url(args.domain, args.uri)
             print('Sending {}?{}'.format(url, params_str))
         path = args.uri + '?' + params_str
 
