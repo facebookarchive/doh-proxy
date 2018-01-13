@@ -6,7 +6,7 @@ possible.
 The code of conduct is described in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 
 ## Our Development Process
-... (in particular how this is synced with internal changes to the project)
+DOH Proxy is developed on Github, contributions can be made by pull requests.
 
 ## Pull Requests
 We actively welcome your pull requests.
