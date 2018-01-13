@@ -44,6 +44,7 @@ def build_body(args):
 
 
 def main_sync(args):
+    logger = utils.configure_logger('doh-client', level=args.level)
     connection = hyper.HTTP20Connection(
         args.domain, args.port,
         force_proto='h2', secure=not args.insecure
@@ -64,7 +65,7 @@ def main_sync(args):
         params_str = urllib.parse.urlencode(params)
         if args.debug:
             url = utils.make_url(args.domain, args.uri)
-            print('Sending {}?{}'.format(url, params_str))
+            logger.debug('Sending {}?{}'.format(url, params_str))
         stream_id = connection.request(
             'GET', args.uri + '?' + params_str,
             headers=headers
@@ -73,9 +74,13 @@ def main_sync(args):
     response = connection.get_response(stream_id)
 
     if args.debug:
-        print('Server response status: {}'.format(response.status))
+        logger.debug('Server response status: {}'.format(response.status))
     if response.status == 200:
-        print(dns.message.from_wire(response.read()))
+        msg = response.read()
+        try:
+            print(dns.message.from_wire(msg))
+        except Exception:
+            logger.exception(msg)
 
 
 if __name__ == '__main__':

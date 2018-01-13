@@ -38,8 +38,11 @@ def parse_args():
 
 class StubServerProtocol:
 
-    def __init__(self, args):
+    def __init__(self, args, logger=None):
+        self.logger = logger
         self.args = args
+        if logger is None:
+            self.logger = utils.configure_logger('StubServerProtocol')
 
     def connection_made(self, transport):
         self.transport = transport
@@ -74,7 +77,7 @@ class StubServerProtocol:
 
         rtt = await client.wait_functional()
         if rtt:
-            print('Round-trip time: %.1fms' % (rtt * 1000))
+            self.logger.debug('Round-trip time: %.1fms' % (rtt * 1000))
 
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri
@@ -113,7 +116,7 @@ class StubServerProtocol:
 
         # Receive response headers
         headers = await client.recv_response(stream_id)
-        print('Response headers:', headers)
+        self.logger.debug('Response headers: {}'.format(headers))
 
         # Read all response body
         resp = await client.read_stream(stream_id, -1)
@@ -123,17 +126,18 @@ class StubServerProtocol:
 
         # Read response trailers
         trailers = await client.recv_trailers(stream_id)
-        print('Response trailers:', trailers)
+        self.logger.debug('Response trailers: {}'.format(trailers))
         client.close_connection()
 
 
 def main():
     args = parse_args()
+    logger = utils.configure_logger('doh-stub', args.level)
     loop = asyncio.get_event_loop()
-    print("Starting UDP server")
+    logger.info("Starting UDP server")
     # One protocol instance will be created to serve all client requests
     listen = loop.create_datagram_endpoint(
-        lambda: StubServerProtocol(args),
+        lambda: StubServerProtocol(args, logger=logger),
         local_addr=(args.listen_address, args.listen_port))
     transport, protocol = loop.run_until_complete(listen)
 

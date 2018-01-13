@@ -6,6 +6,7 @@
 
 ### Changed
 - code refactor between stub and client
+- use logging modules instead of rogue prints
 
 
 ## 0.0.1 - 2018-01-11

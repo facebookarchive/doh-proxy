@@ -8,6 +8,7 @@
 #
 import argparse
 import base64
+import logging
 import urllib.parse
 
 from dohproxy import constants
@@ -83,8 +84,29 @@ def client_parser_base():
         help='Prints some debugging output',
     )
     parser.add_argument(
+        '--level',
+        default='DEBUG',
+        help='log level [%(default)s]',
+    )
+    parser.add_argument(
         '--insecure',
         action='store_true',
         help=argparse.SUPPRESS,
     )
     return parser
+
+
+def configure_logger(name='', level='DEBUG'):
+    """
+    :param name: (optional) name of the logger, default: ''.
+    :param level: (optional) level of logging, default: DEBUG.
+    :return: a logger instance.
+    """
+    logging.basicConfig(format='%(asctime)s: %(levelname)8s: %(message)s')
+    logger = logging.getLogger(name)
+    level_name = level.upper()
+    level = getattr(logging, level_name, None)
+    if not isinstance(level, int):
+        raise Exception("Invalid log level name : %s" % level_name)
+    logger.setLevel(level)
+    return logger
