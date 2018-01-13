@@ -20,7 +20,8 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='doh-proxy',
     version='0.0.1',
-    description='A client and proxy implementation of https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02',
+    description='A client and proxy implementation of '
+                'https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02',
     long_description=long_description,
     url='https://github.com/facebookexperimental/doh-proxy',
     author='Manu Bretelle',
@@ -38,6 +39,9 @@ setup(
     ],
     keywords='doh proxy dns https',
     packages=['dohproxy'],
+    setup_requires=[
+        'flake8',
+    ],
     install_requires=[
         'aioh2',
         'dnspython',

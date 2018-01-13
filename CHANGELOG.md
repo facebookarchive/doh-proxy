@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Aded
+- Travis CI
+
 ### Changed
 - code refactor between stub and client
 
