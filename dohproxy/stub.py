@@ -36,80 +36,6 @@ def parse_args():
     return parser.parse_args()
 
 
-async def make_request(proto, args, addr, dnsq):
-    # Open client connection
-    if args.insecure:
-        sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-        sslctx.options |= ssl.OP_NO_SSLv2
-        sslctx.options |= ssl.OP_NO_SSLv3
-        sslctx.options |= ssl.OP_NO_COMPRESSION
-        sslctx.set_default_verify_paths()
-    else:
-        sslctx = ssl.create_default_context()
-
-    sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
-    sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
-
-    client = await aioh2.open_connection(args.remote_address, args.port,
-                                         functional_timeout=0.1,
-                                         ssl=sslctx,
-                                         server_hostname=args.domain)
-
-    rtt = await client.wait_functional()
-    if rtt:
-        print('Round-trip time: %.1fms' % (rtt * 1000))
-
-    headers = {'Accept': constants.DOH_MEDIA_TYPE}
-    path = args.uri
-    qid = dnsq.id
-    dnsq.id = 0
-    body = b''
-
-    headers = [
-        (':authority', args.domain),
-        (':method', args.post and 'POST' or 'GET'),
-        (':scheme', 'h2'),
-    ]
-    if args.post:
-        headers.append(('content-type', constants.DOH_MEDIA_TYPE))
-        body = dnsq.to_wire()
-    else:
-        params = utils.build_query_params(dnsq.to_wire())
-        print(params)
-        params_str = urllib.parse.urlencode(params)
-        if args.debug:
-            url = utils.make_url(args.domain, args.uri)
-            print('Sending {}?{}'.format(url, params_str))
-        path = args.uri + '?' + params_str
-
-    headers.insert(0, (':path', path))
-    headers.extend([
-        ('content-length', str(len(body))),
-    ])
-    # Start request with headers
-    # import pdb; pdb.set_trace()
-    stream_id = await client.start_request(headers, end_stream=not body)
-
-    # Send my name "world" as whole request body
-    if body:
-        await client.send_data(stream_id, body, end_stream=True)
-
-    # Receive response headers
-    headers = await client.recv_response(stream_id)
-    print('Response headers:', headers)
-
-    # Read all response body
-    resp = await client.read_stream(stream_id, -1)
-    dnsr = dns.message.from_wire(resp)
-    dnsr.id = qid
-    proto.on_answer(addr, dnsr.to_wire())
-
-    # Read response trailers
-    trailers = await client.recv_trailers(stream_id)
-    print('Response trailers:', trailers)
-    client.close_connection()
-
-
 class StubServerProtocol:
 
     def __init__(self, args):
@@ -121,10 +47,84 @@ class StubServerProtocol:
     def datagram_received(self, data, addr):
         dnsq = dns.message.from_wire(data)
 
-        asyncio.ensure_future(make_request(self, self.args, addr, dnsq))
+        asyncio.ensure_future(self.make_request(addr, dnsq))
 
     def on_answer(self, addr, dnsr):
         self.transport.sendto(dnsr, addr)
+
+    async def make_request(self, addr, dnsq):
+        # Open client connection
+        if self.args.insecure:
+            sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+            sslctx.options |= ssl.OP_NO_SSLv2
+            sslctx.options |= ssl.OP_NO_SSLv3
+            sslctx.options |= ssl.OP_NO_COMPRESSION
+            sslctx.set_default_verify_paths()
+        else:
+            sslctx = ssl.create_default_context()
+
+        sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
+        sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
+
+        client = await aioh2.open_connection(self.args.remote_address,
+                                             self.args.port,
+                                             functional_timeout=0.1,
+                                             ssl=sslctx,
+                                             server_hostname=self.args.domain)
+
+        rtt = await client.wait_functional()
+        if rtt:
+            print('Round-trip time: %.1fms' % (rtt * 1000))
+
+        headers = {'Accept': constants.DOH_MEDIA_TYPE}
+        path = self.args.uri
+        qid = dnsq.id
+        dnsq.id = 0
+        body = b''
+
+        headers = [
+            (':authority', self.args.domain),
+            (':method', self.args.post and 'POST' or 'GET'),
+            (':scheme', 'h2'),
+        ]
+        if self.args.post:
+            headers.append(('content-type', constants.DOH_MEDIA_TYPE))
+            body = dnsq.to_wire()
+        else:
+            params = utils.build_query_params(dnsq.to_wire())
+            print(params)
+            params_str = urllib.parse.urlencode(params)
+            if self.args.debug:
+                url = utils.make_url(self.args.domain, self.args.uri)
+                print('Sending {}?{}'.format(url, params_str))
+            path = self.args.uri + '?' + params_str
+
+        headers.insert(0, (':path', path))
+        headers.extend([
+            ('content-length', str(len(body))),
+        ])
+        # Start request with headers
+        # import pdb; pdb.set_trace()
+        stream_id = await client.start_request(headers, end_stream=not body)
+
+        # Send my name "world" as whole request body
+        if body:
+            await client.send_data(stream_id, body, end_stream=True)
+
+        # Receive response headers
+        headers = await client.recv_response(stream_id)
+        print('Response headers:', headers)
+
+        # Read all response body
+        resp = await client.read_stream(stream_id, -1)
+        dnsr = dns.message.from_wire(resp)
+        dnsr.id = qid
+        self.on_answer(addr, dnsr.to_wire())
+
+        # Read response trailers
+        trailers = await client.recv_trailers(stream_id)
+        print('Response trailers:', trailers)
+        client.close_connection()
 
 
 def main():
