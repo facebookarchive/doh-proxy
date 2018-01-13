@@ -11,4 +11,10 @@ install:
 script:
   # Install and Run flake8
   - python setup.py flake8
+  # Attempt to install
+  - python setup.py install
+  # Lame dependency check
+  - doh-proxy -h
+  - doh-stub -h
+  - doh-client -h
   - python setup.py bdist_wheel

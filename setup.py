@@ -45,7 +45,7 @@ setup(
     install_requires=[
         'aioh2',
         'dnspython',
-        'h2',
+        'hyper',
     ],
     entry_points={
         'console_scripts': [
