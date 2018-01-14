@@ -6,11 +6,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
+import asyncio
 import dns.message
-import hyper
-import urllib.parse
 
-from dohproxy import constants, utils
+from dohproxy import protocol, utils
+
+
+class Client(protocol.StubServerProtocol):
+    def on_answer(self, addr, msg):
+        try:
+            print(dns.message.from_wire(msg))
+        except Exception:
+            self.logger.exception(msg)
 
 
 def parse_args():
@@ -33,54 +40,22 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_body(args):
+def build_query(args):
     dnsq = dns.message.make_query(
         qname=args.qname,
         rdtype=args.qtype,
         want_dnssec=args.dnssec,
     )
     dnsq.id = 0
-    return dnsq.to_wire()
+    return dnsq
 
 
 def main_sync(args):
     logger = utils.configure_logger('doh-client', level=args.level)
-    connection = hyper.HTTP20Connection(
-        args.domain, args.port,
-        force_proto='h2', secure=not args.insecure
-    )
+    client = Client(args=args, logger=logger)
 
-    headers = {'Accept': constants.DOH_MEDIA_TYPE}
-
-    if args.post:
-        headers['content-type'] = constants.DOH_MEDIA_TYPE
-        body = build_body(args)
-        stream_id = connection.request(
-            'POST', args.uri,
-            body=body, headers=headers
-        )
-    else:
-        body = build_body(args)
-        params = utils.build_query_params(body)
-        params_str = urllib.parse.urlencode(params)
-        if args.debug:
-            url = utils.make_url(args.domain, args.uri)
-            logger.debug('Sending {}?{}'.format(url, params_str))
-        stream_id = connection.request(
-            'GET', args.uri + '?' + params_str,
-            headers=headers
-        )
-
-    response = connection.get_response(stream_id)
-
-    if args.debug:
-        logger.debug('Server response status: {}'.format(response.status))
-    if response.status == 200:
-        msg = response.read()
-        try:
-            print(dns.message.from_wire(msg))
-        except Exception:
-            logger.exception(msg)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(client.make_request(None, build_query(args)))
 
 
 if __name__ == '__main__':

@@ -7,6 +7,11 @@
 ### Changed
 - code refactor between stub and client
 - use logging modules instead of rogue prints
+- stub and client now use the same StubServerProtocol as the base to perform
+  queries.
+
+### Removed
+- dependency on hyper package
 
 
 ## 0.0.1 - 2018-01-11

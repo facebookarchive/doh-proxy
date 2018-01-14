@@ -78,7 +78,9 @@ class StubServerProtocol:
         sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
         sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
 
-        client = await aioh2.open_connection(self.args.remote_address,
+        remote_addr = self.args.remote_address \
+            if self.args.remote_address else self.args.domain
+        client = await aioh2.open_connection(remote_addr,
                                              self.args.port,
                                              functional_timeout=0.1,
                                              ssl=sslctx,
@@ -104,11 +106,11 @@ class StubServerProtocol:
             body = dnsq.to_wire()
         else:
             params = utils.build_query_params(dnsq.to_wire())
-            print(params)
+            self.logger.debug('Query parameters: {}'.format(params))
             params_str = urllib.parse.urlencode(params)
             if self.args.debug:
                 url = utils.make_url(self.args.domain, self.args.uri)
-                print('Sending {}?{}'.format(url, params_str))
+                self.logger.debug('Sending {}?{}'.format(url, params_str))
             path = self.args.uri + '?' + params_str
 
         headers.insert(0, (':path', path))

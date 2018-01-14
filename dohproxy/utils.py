@@ -69,6 +69,11 @@ def client_parser_base():
         help='DNS API URI. Default [%(default)s]',
     )
     parser.add_argument(
+        '--remote-address',
+        help='Remote address where the DOH proxy is running. '
+             'Default: [%(default)s]',
+    )
+    parser.add_argument(
         '--port',
         default=443,
         help='Port to connect to. Default: [%(default)s]'

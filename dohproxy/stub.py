@@ -23,11 +23,6 @@ def parse_args():
         default=None,
         help='The address the stub should listen on. Default: [%(default)s]'
     )
-    parser.add_argument(
-        '--remote-address',
-        help='Remote address where the DOH proxy is running. '
-             'Default: [%(default)s]',
-    )
 
     return parser.parse_args()
 
