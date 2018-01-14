@@ -70,8 +70,8 @@ def client_parser_base():
     )
     parser.add_argument(
         '--remote-address',
-        help='Remote address where the DOH proxy is running. '
-             'Default: [%(default)s]',
+        help='Remote address where the DOH proxy is running. If None, '
+        '--domain will be resolved to lookup and IP. Default: [%(default)s]',
     )
     parser.add_argument(
         '--port',

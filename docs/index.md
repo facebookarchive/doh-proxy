@@ -108,10 +108,6 @@ sigok.verteiltesysteme.net. 60 IN RRSIG AAAA 5 3 60 20180130030002 2017103103000
 ;ADDITIONAL
 ```
 
-## Caveats
-
-* 1 request per connection only.
-
 ## Development
 
 From within the root of the repository, you can test the proxy, stub and client respectively
