@@ -26,6 +26,7 @@ setup(
     url='https://github.com/facebookexperimental/doh-proxy',
     author='Manu Bretelle',
     author_email='chantra@fb.com',
+    license="BSD",
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -41,10 +42,15 @@ setup(
     packages=['dohproxy'],
     setup_requires=[
         'flake8',
+        'pytest-runner',
     ],
     install_requires=[
-        'aioh2',
+        'aioh2 >= 0.2.1',
         'dnspython',
+    ],
+    tests_require=[
+        'pytest',
+        'unittest-data-provider',
     ],
     entry_points={
         'console_scripts': [

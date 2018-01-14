@@ -5,12 +5,15 @@ python:
 
 # command to install dependencies
 install:
+  # Install install_require
   - python setup.py develop
 
 
 script:
   # Install and Run flake8
   - python setup.py flake8
+  # Run unittests
+  - python setup.py test
   # Attempt to install
   - python setup.py install
   # Lame dependency check
