@@ -58,6 +58,10 @@ def main_sync(args):
     loop.run_until_complete(client.make_request(None, build_query(args)))
 
 
-if __name__ == '__main__':
+def main():
     args = parse_args()
     main_sync(args)
+
+
+if __name__ == '__main__':
+    main()

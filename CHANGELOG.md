@@ -13,6 +13,10 @@
 ### Removed
 - dependency on hyper package
 
+### Fixed
+- doh-proxy: properly import dohproxy.protocol
+- doh-client: properly set entry_point
+
 
 ## 0.0.1 - 2018-01-11
 ### Added

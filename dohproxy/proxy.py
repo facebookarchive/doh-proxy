@@ -16,7 +16,7 @@ import ssl
 import urllib.parse
 
 from dohproxy import constants, utils
-from protocol import DNSClientProtocol
+from dohproxy.protocol import DNSClientProtocol
 
 
 from typing import List, Tuple
