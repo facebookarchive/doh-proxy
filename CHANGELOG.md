@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Aded
 - Travis CI
+- Support multiple query over the same HTTP2 connection.
 
 ### Changed
 - code refactor between stub and client

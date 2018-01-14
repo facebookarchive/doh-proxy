@@ -52,20 +52,11 @@ class StubServerProtocol:
         self.args = args
         if logger is None:
             self.logger = utils.configure_logger('StubServerProtocol')
+        self.client = None
 
-    def connection_made(self, transport):
-        self.transport = transport
-
-    def datagram_received(self, data, addr):
-        dnsq = dns.message.from_wire(data)
-
-        asyncio.ensure_future(self.make_request(addr, dnsq))
-
-    def on_answer(self, addr, dnsr):
-        self.transport.sendto(dnsr, addr)
-
-    async def make_request(self, addr, dnsq):
+    async def setup_client(self):
         # Open client connection
+        self.logger.debug('Opening connection to {}'.format(self.args.domain))
         if self.args.insecure:
             sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
             sslctx.options |= ssl.OP_NO_SSLv2
@@ -80,15 +71,35 @@ class StubServerProtocol:
 
         remote_addr = self.args.remote_address \
             if self.args.remote_address else self.args.domain
-        client = await aioh2.open_connection(remote_addr,
-                                             self.args.port,
-                                             functional_timeout=0.1,
-                                             ssl=sslctx,
-                                             server_hostname=self.args.domain)
-
-        rtt = await client.wait_functional()
+        self.client = await aioh2.open_connection(
+            remote_addr,
+            self.args.port,
+            functional_timeout=0.1,
+            ssl=sslctx,
+            server_hostname=self.args.domain)
+        rtt = await self.client.wait_functional()
         if rtt:
             self.logger.debug('Round-trip time: %.1fms' % (rtt * 1000))
+
+        return self.client
+
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        dnsq = dns.message.from_wire(data)
+
+        asyncio.ensure_future(self.make_request(addr, dnsq))
+
+    def on_answer(self, addr, dnsr):
+        self.transport.sendto(dnsr, addr)
+
+    async def make_request(self, addr, dnsq):
+
+        # FIXME: maybe aioh2 should allow registering to connection_lost event
+        # so we can find out when the connection get disconnected.
+        if self.client is None or self.client._conn is None:
+            await self.setup_client()
 
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri
@@ -118,24 +129,24 @@ class StubServerProtocol:
             ('content-length', str(len(body))),
         ])
         # Start request with headers
-        # import pdb; pdb.set_trace()
-        stream_id = await client.start_request(headers, end_stream=not body)
+        stream_id = await self.client.start_request(
+            headers,
+            end_stream=not body)
 
         # Send my name "world" as whole request body
         if body:
-            await client.send_data(stream_id, body, end_stream=True)
+            await self.client.send_data(stream_id, body, end_stream=True)
 
         # Receive response headers
-        headers = await client.recv_response(stream_id)
+        headers = await self.client.recv_response(stream_id)
         self.logger.debug('Response headers: {}'.format(headers))
 
         # Read all response body
-        resp = await client.read_stream(stream_id, -1)
+        resp = await self.client.read_stream(stream_id, -1)
         dnsr = dns.message.from_wire(resp)
         dnsr.id = qid
         self.on_answer(addr, dnsr.to_wire())
 
         # Read response trailers
-        trailers = await client.recv_trailers(stream_id)
+        trailers = await self.client.recv_trailers(stream_id)
         self.logger.debug('Response trailers: {}'.format(trailers))
-        client.close_connection()
