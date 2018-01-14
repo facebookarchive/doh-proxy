@@ -36,7 +36,8 @@ def main():
     listen = loop.create_datagram_endpoint(
         lambda: protocol.StubServerProtocol(args, logger=logger),
         local_addr=(args.listen_address, args.listen_port))
-    transport, _ = loop.run_until_complete(listen)
+    transport, proto = loop.run_until_complete(listen)
+    loop.run_until_complete(proto.setup_client())
 
     try:
         loop.run_forever()
