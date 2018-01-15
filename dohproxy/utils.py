@@ -14,18 +14,18 @@ import urllib.parse
 from dohproxy import constants
 
 
-def doh_b64_encode(s):
+def doh_b64_encode(s: bytes) -> str:
     """Base 64 urlsafe encode and remove padding.
-    input: bytes
-    output: str
+    :param s: input bytes-like object to be encoded.
+    :return: urlsafe base 64 encoded string.
     """
     return base64.urlsafe_b64encode(s).decode('utf-8').rstrip('=')
 
 
-def doh_b64_decode(s):
+def doh_b64_decode(s: str) -> bytes:
     """Base 64 urlsafe decode, add padding as needed.
-    input: str
-    output: bytes
+    :param s: input base64 encoded string with potentially missing padding.
+    :return: decodes bytes
     """
     padding = '=' * (-len(s) % 4)
     return base64.urlsafe_b64decode(s + padding)
@@ -34,10 +34,9 @@ def doh_b64_decode(s):
 def build_query_params(dns_query):
     """Given a wire-format DNS query, build the query parameters.
     """
-    contenttype = constants.DOH_MEDIA_TYPE
     return {
         constants.DOH_BODY_PARAM: doh_b64_encode(dns_query),
-        constants.DOH_CONTENT_TYPE_PARAM: contenttype,
+        constants.DOH_CONTENT_TYPE_PARAM: constants.DOH_MEDIA_TYPE,
     }
 
 
@@ -56,6 +55,7 @@ def make_url(domain, uri):
 def client_parser_base():
     """Build a ArgumentParser object with all the default arguments that are
     useful to both client and stub.
+    :return: a ArgumentParser object with the common client side arguments set.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument(
