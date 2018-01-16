@@ -18,24 +18,26 @@ from dohproxy import constants, utils
 
 
 class DNSClientProtocol:
-    def __init__(self, dnsq, queue):
+    def __init__(self, dnsq, queue, logger=None):
         self.dnsq = dnsq
-        self.dnsq.id = dns.entropy.random_16()
         self.queue = queue
         self.transport = None
+        self.logger = logger
+        if logger is None:
+            self.logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
 
     def connection_made(self, transport):
         self.transport = transport
-        print('Send: ID {} {}'.format(self.dnsq.id, self.dnsq.question[0]))
+        self.dnsq.id = dns.entropy.random_16()
+        self.logger.info(
+            '[DNS] Send: ID {} {}'.format(self.dnsq.id, self.dnsq.question[0]))
         self.transport.sendto(self.dnsq.to_wire())
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        print('Received: ID {} {}'.format(dnsr.id, dnsr.question[0]))
-        dnsr.id = 0
+        self.logger.info(
+            '[DNS] Received: ID {} {}'.format(dnsr.id, dnsr.question[0]))
         self.queue.put_nowait(dnsr)
-        # print("Received:", dnsr)
-        # print("Close the socket")
         self.transport.close()
 
     def error_received(self, exc):

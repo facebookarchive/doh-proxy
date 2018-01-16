@@ -61,6 +61,11 @@ def parse_args():
         help='DNS API URI. Default [%(default)s]',
     )
     parser.add_argument(
+        '--level',
+        default='DEBUG',
+        help='log level [%(default)s]',
+    )
+    parser.add_argument(
         '--debug',
         action='store_true',
         help='Debugging messages...'
@@ -86,9 +91,12 @@ async def resolve(dnsq, stream_id, proto):
 
 
 class H2Protocol(asyncio.Protocol):
-    def __init__(self, upstream_resolver=None, uri=None):
+    def __init__(self, upstream_resolver=None, uri=None, logger=None):
         config = H2Configuration(client_side=False, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
+        self.logger = logger
+        if logger is None:
+            self.logger = utils.configure_logger('doh-proxy', 'DEBUG')
         self.transport = None
         self.stream_data = {}
         self.upstream_resolver = upstream_resolver
@@ -184,7 +192,13 @@ class H2Protocol(asyncio.Protocol):
 
         # Do actual DNS Query
         dnsq = dns.message.from_wire(body)
-        print('Received: ID {} {}'.format(dnsq.id, dnsq.question[0]))
+        self.logger.info(
+            '[HTTPS] Received: ID {} Question {} Peer {}'.format(
+                dnsq.id,
+                dnsq.question[0],
+                self.transport.get_extra_info('peername'),
+            )
+        )
         asyncio.ensure_future(resolve(dnsq, stream_id, self))
 
     def on_answer(self, stream_id, dnsr=None, dnsq=None):
@@ -198,7 +212,13 @@ class H2Protocol(asyncio.Protocol):
             ttl = min(r.ttl for r in dnsr.answer)
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
-        print('Send: ID {} {}'.format(dnsr.id, dnsr.question[0]))
+        self.logger.info(
+            '[HTTPS] Send: ID {} Question {} Peer {}'.format(
+                dnsr.id,
+                dnsr.question[0],
+                self.transport.get_extra_info('peername')
+            )
+        )
         body = dnsr.to_wire()
 
         response_headers = (
@@ -282,18 +302,20 @@ def ssl_context(options):
 
 def main():
     args = parse_args()
+    logger = utils.configure_logger('doh-proxy', args.level)
     ssl_ctx = ssl_context(args)
     loop = asyncio.get_event_loop()
     coro = loop.create_server(
         lambda: H2Protocol(
             upstream_resolver=args.upstream_resolver,
-            uri=args.uri),
+            uri=args.uri,
+            logger=logger),
         port=args.port,
         ssl=ssl_ctx)
     server = loop.run_until_complete(coro)
 
     # Serve requests until Ctrl+C is pressed
-    print('Serving on {}'.format(server))
+    logger.info('Serving on {}'.format(server))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
