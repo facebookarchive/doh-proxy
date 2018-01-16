@@ -5,6 +5,7 @@ Python scripts that supports proxying DNS over HTTPS [draft-ietf-doh-dns-over-ht
 The project comes with 3 commands:
 * doh-client: A tool to perform a DNS query against DOH server.
 * doh-proxy: A service that receives DOH queries and forwards them to a recursive resolver.
+* doh-httpproxy: A Service that runs DOH over HTTP, instead of HTTP2. This can be set behind a reverse proxy.
 * doh-stub: A service that listens for DNS queries and forwards them to a DOH server.
 
 See the CONTRIBUTING file for how to help out.
@@ -16,7 +17,7 @@ You are welcome to use it, but be aware that support is limited and best-effort.
 ## Requirements
 
 * python >= 3.5
-* h2
+* aiohttp
 * aioh2
 * dnspython
 

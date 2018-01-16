@@ -46,6 +46,7 @@ setup(
     ],
     install_requires=[
         'aioh2 >= 0.2.1',
+        'aiohttp',
         'dnspython',
     ],
     tests_require=[
@@ -56,6 +57,7 @@ setup(
         'console_scripts': [
             'doh-client = dohproxy.client:main',
             'doh-proxy = dohproxy.proxy:main',
+            'doh-httpproxy = dohproxy.httpproxy:main',
             'doh-stub = dohproxy.stub:main',
         ],
     },
