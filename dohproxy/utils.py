@@ -11,7 +11,17 @@ import base64
 import logging
 import urllib.parse
 
+from typing import Dict, List, Tuple
+
 from dohproxy import constants
+
+
+def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
+    """ Given a URI, extract the path and the parameters
+    """
+    p = urllib.parse.urlparse(url)
+    params = urllib.parse.parse_qs(p.query)
+    return p.path, params
 
 
 def doh_b64_encode(s: bytes) -> str:

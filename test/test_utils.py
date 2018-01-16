@@ -79,3 +79,20 @@ class TestTypoChecker(unittest.TestCase):
         """ Basic test to check that there is no stupid typos.
         """
         utils.configure_logger()
+
+
+def extract_path_params_source():
+    return [
+        ('/foo?a=b&c=d#1234', ('/foo', {'a': ['b'], 'c': ['d']})),
+        ('/foo', ('/foo', {})),
+        ('/foo?#', ('/foo', {})),
+        ('foo', ('foo', {})),
+    ]
+
+
+class TestExtractPathParams(unittest.TestCase):
+    @data_provider(extract_path_params_source)
+    def test_make_url(self, uri, output):
+        path, params = utils.extract_path_params(uri)
+        self.assertEqual(path, output[0])
+        self.assertDictEqual(params, output[1])

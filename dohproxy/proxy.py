@@ -13,7 +13,6 @@ import dns.message
 import dns.rcode
 import io
 import ssl
-import urllib.parse
 
 from dohproxy import constants, utils
 from dohproxy.protocol import DNSClientProtocol
@@ -138,12 +137,7 @@ class H2Protocol(asyncio.Protocol):
         method = request_data.headers[':method']
 
         # Handle the actual query
-        path = headers[':path']
-        if u'?' in path:
-            path, query = path.split(u'?', 1)
-        else:
-            query = ''
-        params = urllib.parse.parse_qs(query)
+        path, params = utils.extract_path_params(headers[':path'])
 
         if path != self.uri:
             self.return_404(stream_id)
