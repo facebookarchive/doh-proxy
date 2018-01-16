@@ -1,7 +1,7 @@
 # Changelog
 
 ## [Unreleased]
-### Aded
+### Added
 - Travis CI
 - Support multiple query over the same HTTP2 connection.
 
@@ -10,6 +10,7 @@
 - use logging modules instead of rogue prints
 - stub and client now use the same StubServerProtocol as the base to perform
   queries.
+- proxy: use logging module instead of print
 
 ### Removed
 - dependency on hyper package

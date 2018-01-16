@@ -43,7 +43,7 @@ def parse_args():
     )
     parser.add_argument(
         '--upstream-resolver',
-        default='8.8.8.8',
+        default='::1',
         help='Upstream recursive resolver to send the query to. '
              'Default: [%(default)s]',
     )
@@ -71,23 +71,6 @@ def parse_args():
         help='Debugging messages...'
     )
     return parser.parse_args()
-
-
-async def resolve(dnsq, stream_id, proto):
-    loop = asyncio.get_event_loop()
-    queue = asyncio.Queue(maxsize=1)
-    await loop.create_datagram_endpoint(
-            lambda: DNSClientProtocol(dnsq, queue),
-            remote_addr=(proto.upstream_resolver, 53))
-
-    print("Waiting for DNS response")
-    try:
-        dnsr = await asyncio.wait_for(queue.get(), 10)
-        queue.task_done()
-        proto.on_answer(stream_id, dnsr)
-    except asyncio.TimeoutError:
-        print("Request timed out")
-        proto.on_answer(stream_id, dnsq=dnsq)
 
 
 class H2Protocol(asyncio.Protocol):
@@ -199,7 +182,7 @@ class H2Protocol(asyncio.Protocol):
                 self.transport.get_extra_info('peername'),
             )
         )
-        asyncio.ensure_future(resolve(dnsq, stream_id, self))
+        asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
     def on_answer(self, stream_id, dnsr=None, dnsq=None):
         headers = {
@@ -230,6 +213,24 @@ class H2Protocol(asyncio.Protocol):
         self.conn.send_headers(stream_id, response_headers)
         self.conn.send_data(stream_id, body, end_stream=True)
         self.transport.write(self.conn.data_to_send())
+
+    async def resolve(self, dnsq, stream_id):
+        qid = dnsq.id
+        loop = asyncio.get_event_loop()
+        queue = asyncio.Queue(maxsize=1)
+        await loop.create_datagram_endpoint(
+                lambda: DNSClientProtocol(dnsq, queue),
+                remote_addr=(self.upstream_resolver, 53))
+
+        self.logger.debug("Waiting for DNS response")
+        try:
+            dnsr = await asyncio.wait_for(queue.get(), 10)
+            dnsr.id = qid
+            queue.task_done()
+            self.on_answer(stream_id, dnsr=dnsr)
+        except asyncio.TimeoutError:
+            self.logger.debug("Request timed out")
+            self.on_answer(stream_id, dnsq=dnsq)
 
     def return_XXX(self, stream_id: int, status: int, body: bytes = b''):
         """
