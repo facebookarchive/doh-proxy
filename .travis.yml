@@ -18,6 +18,7 @@ script:
   - python setup.py install
   # Lame dependency check
   - doh-proxy -h
+  - doh-httpproxy -h
   - doh-stub -h
   - doh-client -h
   - python setup.py bdist_wheel
