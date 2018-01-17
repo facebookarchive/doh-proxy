@@ -20,7 +20,7 @@ def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
     """ Given a URI, extract the path and the parameters
     """
     p = urllib.parse.urlparse(url)
-    params = urllib.parse.parse_qs(p.query)
+    params = urllib.parse.parse_qs(p.query, keep_blank_values=True)
     return p.path, params
 
 

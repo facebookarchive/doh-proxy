@@ -87,6 +87,9 @@ def extract_path_params_source():
         ('/foo', ('/foo', {})),
         ('/foo?#', ('/foo', {})),
         ('foo', ('foo', {})),
+        # Test that we keep empty values
+        ('/foo?a=b&c', ('/foo', {'a': ['b'], 'c': ['']})),
+        ('/foo?a=b&c=', ('/foo', {'a': ['b'], 'c': ['']})),
     ]
 
 

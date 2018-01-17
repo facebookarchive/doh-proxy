@@ -60,8 +60,15 @@ async def doh1handler(request):
         if constants.DOH_CONTENT_TYPE_PARAM in params and \
                 len(params[constants.DOH_CONTENT_TYPE_PARAM]):
             ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
+            if not ct:
+                # An empty value indicates the default
+                # application/dns-udpwireformat type
+                ct = constants.DOH_MEDIA_TYPE
         else:
-            return aiohttp.web.Response(status=400, body=b'Missing Body')
+            return aiohttp.web.Response(
+                status=400,
+                body=b'Missing Content Type'
+            )
 
         if constants.DOH_BODY_PARAM in params and \
                 len(params[constants.DOH_BODY_PARAM]):

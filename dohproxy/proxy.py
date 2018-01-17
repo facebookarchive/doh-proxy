@@ -147,6 +147,10 @@ class H2Protocol(asyncio.Protocol):
             if constants.DOH_CONTENT_TYPE_PARAM in params and \
                     len(params[constants.DOH_CONTENT_TYPE_PARAM]):
                 ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
+                if not ct:
+                    # An empty value indicates the default
+                    # application/dns-udpwireformat type
+                    ct = constants.DOH_MEDIA_TYPE
             else:
                 self.return_400(stream_id, body=b'Missing Content Type')
                 return
