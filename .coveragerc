@@ -1,0 +1,10 @@
+[report]
+fail_under = 18
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[run]
+branch = True
+source =
+    dohproxy

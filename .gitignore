@@ -1,3 +1,10 @@
 venv
 __pycache__
 _site
+.coverage
+.cache
+.eggs
+htmlcov
+build
+dist
+*.egg-info
