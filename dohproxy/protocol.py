@@ -17,6 +17,10 @@ import urllib.parse
 from dohproxy import constants, utils
 
 
+class DOHParamsException(Exception):
+    pass
+
+
 class DNSClientProtocol:
     def __init__(self, dnsq, queue, logger=None):
         self.dnsq = dnsq

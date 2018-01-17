@@ -7,8 +7,11 @@
 # LICENSE file in the root directory of this source tree.
 #
 
+import binascii
 import unittest
 
+from dohproxy import constants
+from dohproxy import protocol
 from dohproxy import utils
 from unittest_data_provider import data_provider
 
@@ -53,6 +56,13 @@ class TestDOHB64(unittest.TestCase):
     def test_b64_decode(self, output, input):
         self.assertEqual(utils.doh_b64_decode(input), output)
 
+    def test_b64_decode_invalid(self):
+        """ When providing an invalid input to base64.urlsafe_b64decode it
+        should raise a binascii.Error exception.
+        """
+        with self.assertRaisesRegex(binascii.Error, 'Incorrect padding'):
+            utils.doh_b64_decode('_')
+
 
 def make_url_source():
     return [
@@ -95,7 +105,60 @@ def extract_path_params_source():
 
 class TestExtractPathParams(unittest.TestCase):
     @data_provider(extract_path_params_source)
-    def test_make_url(self, uri, output):
+    def test_extract_path_params(self, uri, output):
         path, params = utils.extract_path_params(uri)
         self.assertEqual(path, output[0])
         self.assertDictEqual(params, output[1])
+
+
+def extract_ct_body_valid_source():
+    return [
+        (
+            '/foo?ct&body=aW1wYXJhbGxlbGVk',
+            (constants.DOH_MEDIA_TYPE, b'imparalleled'),
+        ),
+        (
+            '/foo?ct=&body=aW1wYXJhbGxlbGVk',
+            (constants.DOH_MEDIA_TYPE, b'imparalleled'),
+        ),
+        (
+            '/foo?ct=bar&body=aW1wYXJhbGxlbGVk',
+            ('bar', b'imparalleled'),
+        )
+    ]
+
+
+def extract_ct_body_invalid_source():
+    return [
+        (
+            '/foo?body=aW1wYXJhbGxlbGVk',
+            'Missing Content Type Parameter',
+        ),
+        (
+            '/foo?ct=&body=',
+            'Missing Body',
+        ),
+        (
+            '/foo?ct=',
+            'Missing Body Parameter',
+        ),
+        (
+            '/foo?ct=bar&body=_',
+            'Invalid Body Parameter',
+        )
+    ]
+
+
+class TestExtractCtBody(unittest.TestCase):
+    @data_provider(extract_ct_body_valid_source)
+    def test_extract_ct_body_valid(self, uri, output):
+        path, params = utils.extract_path_params(uri)
+        ct, body = utils.extract_ct_body(params)
+        self.assertEqual(ct, output[0])
+        self.assertEqual(body, output[1])
+
+    @data_provider(extract_ct_body_invalid_source)
+    def test_extract_ct_body_invalid(self, uri, output):
+        path, params = utils.extract_path_params(uri)
+        with self.assertRaisesRegex(protocol.DOHParamsException, output):
+            utils.extract_ct_body(params)
