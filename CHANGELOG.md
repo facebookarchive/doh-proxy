@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.0.2] - 2018-01-16
 ### Added
 - Travis CI
 - Support multiple query over the same HTTP2 connection.
@@ -32,4 +34,5 @@
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...HEAD
+[0.0.2]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.1...v0.0.2
