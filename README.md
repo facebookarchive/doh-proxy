@@ -1,74 +1,99 @@
 # DNS Over HTTPS Proxy
 
-Python scripts that supports proxying DNS over HTTPS [draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02) to a recursive resolver.
+A set of python 3 scripts that supports proxying DNS over HTTPS as specified
+in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02).
 
-The project comes with 3 commands:
-* doh-client: A tool to perform a DNS query against DOH server.
-* doh-proxy: A service that receives DOH queries and forwards them to a recursive resolver.
-* doh-httpproxy: A Service that runs DOH over HTTP, instead of HTTP2. This can be set behind a reverse proxy.
-* doh-stub: A service that listens for DNS queries and forwards them to a DOH server.
+DOH provides a way to run encrypted DNS over HTTPS, a protocol which can freely
+traverse firewalls when other encrypted mechanism may be blocked.
 
-See the CONTRIBUTING file for how to help out.
+The project comes with a set of 4 tools:
 
-DOH Proxy was created during [IETF Hackathon 100](https://www.ietf.org/hackathon/100-hackathon.html) as a proof-of-concept and is not used at Facebook.
+* [doh-proxy](#doh-proxy): A service that receives DOH queries over HTTP2 and forwards them
+to a recursive resolver.
+* [doh-httpproxy](#doh-httpproxy): Like `doh-proxy` but uses HTTP instead of HTTP2.
+The main intent is to run this behind a reverse proxy.
+* [doh-stub](#doh-stub): A service that listens for DNS queries and forwards them to a DOH server.
+* [doh-client](#doh-client): A tool to perform a test DNS query against DOH server.
+
+See the `CONTRIBUTING` file for how to help out.
+
+DOH Proxy was created during [IETF Hackathon 100](https://www.ietf.org/how/runningcode/hackathons/100-hackathon/) as a proof-of-concept and is not used at Facebook.
 
 You are welcome to use it, but be aware that support is limited and best-effort.
 
-## Requirements
-
-* python >= 3.5
-* aiohttp
-* aioh2
-* dnspython
-
-## Building
-
-DOH Proxy uses Python'setuptools to manage dependencies and build.
-
-To install its dependencies:
-
-```
-python setup.py develop
-```
-
-To build:
-```
-python setup.py build
-```
-
 ## Installing
 
-```
-python setup.py install
+To install an already packaged version directly from PyPi:
+
+```shell
+$ pip3 install doh-proxy
 ```
 
 ## Usage
 
-### Proxy
+### doh-proxy
 
-```
+`doh-proxy` is a stand alone server answering DOH request. The proxy does not do
+DNS recursion itself and rather forward the query to a full-featured DNS
+recursive server or DNS caching server.
+
+By running `doh-proxy`, you can get and end-to-end DOH solution with minimal
+setup.
+
+```shell
 $ sudo doh-proxy \
     --upstream-resolver=::1 \
     --certfile=./fullchain.pem \
     --keyfile=./privkey.pem
 ```
 
+### doh-httpproxy
 
-### Stub resolver
+`doh-httpproxy` is designed to be running behind a reverse proxy. In this setup
+a reverse proxy such as [NGINX](https://nginx.org/) would be handling the
+HTTPS/HTTP2 requests from the DOH clients and will forward them to
+`doh-httpproxy` backends.
+
+While this setup requires more upfront setup, it allows running DOH proxy
+unprivileged and on multiple cores.
 
 
-You can start a stub resolver and query it. The traffic will be forwarded to a remote DOH server.
-
+```shell
+$ sudo doh-httpproxy \
+    --upstream-resolver=::1 \
+    --port 8080 \
+    --listen-address ::1
 ```
+
+
+### doh-stub
+
+`doh-stub` is the piece of software that you would run on the clients. By
+providing a local DNS server, `doh-stub` will forward the DNS requests it
+receives to a DOH server using an encrypted link.
+
+You can start a stub resolver with:
+
+```shell
 $ doh-stub \
     --listen-port 5553 \
+    --listen-address ::1 \
     --domain foo.bar \
     --remote-address ::1
 ```
 
-### Test Client
+and query it.
 
+```shell
+$ dig @::1 -p 5553 example.com
 ```
+
+### doh-client
+
+`doh-client` is just a test cli that can be used to quickly send a request to
+a DOH server and dump the returned answer.
+
+```shell
 $ doh-client  \
     --domain dns.dnsoverhttps.net \
     --qname sigfail.verteiltesysteme.net \
@@ -108,20 +133,156 @@ sigok.verteiltesysteme.net. 60 IN RRSIG AAAA 5 3 60 20180130030002 2017103103000
 
 ## Development
 
+
+### Requirements
+
+* python >= 3.5
+* aiohttp
+* aioh2
+* dnspython
+
+### Building
+
+DOH Proxy uses Python'setuptools to manage dependencies and build.
+
+To install its dependencies:
+
+```shell
+$ python3 setup.py develop
+```
+
+To build:
+```shell
+$ python3 setup.py build
+```
+
+To run unittests:
+```shell
+$ python3 setup.py test
+```
+
+To run the linter:
+```shell
+$ python3 setup.py flake8
+```
+
 From within the root of the repository, you can test the proxy, stub and client respectively
 by using the following commands:
 
-```
-$ sudo PYTHONPATH=. python3 ./dohproxy/proxy.py ...
-```
-
-```
-$ PYTHONPATH=. python3 ./dohproxy/stub.py ...
+```shell
+$ sudo PYTHONPATH=. ./dohproxy/proxy.py ...
 ```
 
+```shell
+$ PYTHONPATH=. ./dohproxy/httpproxy.py ...
 ```
-$ PYTHONPATH=. python3 ./dohproxy/client.py ...
+
+
+```shell
+$ PYTHONPATH=. ./dohproxy/stub.py ...
 ```
+
+```shell
+$ PYTHONPATH=. ./dohproxy/client.py ...
+```
+
+## Example setups
+
+In those examples, we will assume that we have the following setup:
+
+* A digital certificate for `dns.example.com`
+* cert file at `/etc/certs/dns.example.com/fullchain.pem`
+* key file at `/etc/certs/dns.example.com/privkey.pem`
+* a DNS resolver that listen on ::1 port 53.
+* A `server` that will be running the `doh-proxy`, this is a host to which the traffic
+will be sent encrypted and will perform the DNS request on our behalf.
+In this example, the server is running at `fdbe:7d77:b04f:a2ca::1/64`
+* A `client` that will run the `doh-stub`. We will configure our DNS queries to
+be sent to the stub, which in turn will be proxied encrypted to our DOH server.
+
+This document will focus on the `doh-proxy` tools arguments and where they
+should be run. The specifics of configuring a DNS recursive resolver, reverse
+proxy are outside the scope of this document and are already intensively
+covered o the Internet.
+
+### Simple setup
+
+On the `server`, we run the `doh-proxy` as root:
+
+```shell
+$ sudo doh-proxy \
+    --certfile /etc/certs/dns.example.com/fullchain.pem \
+    --keyfile /etc/certs/dns.example.com/privkey.pem \
+    --upstream-resolver ::1
+```
+
+On the `client`
+```shell
+$ sudo doh-stub \
+    --domain dns.example.com \
+    --remote-address fdbe:7d77:b04f:a2ca::1 \
+     --listen-address ::1
+```
+
+You can test it by running a `dig` on the `client`:
+```shell
+$ dig @::1 example.com
+```
+
+To start using it, update `/etc/resolv.conf` and change `nameserver` do be:
+```
+nameserver ::1
+```
+### Behind a reverse proxy
+
+In this setup, we will run a reverse proxy server that will take care of
+handling https request and forward them to a `dns-httpproxy` that runs on the
+same host.
+
+
+Assuming we use [nginx](https://nginx.org/) as our reverse proxy and 2 instances
+of `doh-httpproxy`, one listening on port 8080 and the other one on port 8081.
+
+
+To run the `doh-httpproxy` processes:
+
+```shell
+$ doh-httpproxy --upstream-resolver ::1 --port 8080 --listen-address=::1
+$ doh-httpproxy --upstream-resolver ::1 --port 8081 --listen-address=::1
+```
+
+And then the relevant Nginx config would look like:
+
+```
+upstream backend {
+        server [::1]:8080;
+        server [::1]:8081;
+}
+
+server {
+        listen 443 ssl http2 default_server;
+        listen [::]:443 ssl http2 default_server;
+
+        server_name dns.example.com;
+
+        location / {
+              proxy_set_header Host $http_host;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_redirect off;
+              proxy_buffering off;
+              proxy_pass http://backend;
+        }
+
+        ssl_prefer_server_ciphers on;
+        ssl_ciphers EECDH+CHACHA20:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+
+        ssl_certificate /etc/certs/dns.example.com/fullchain.pem;
+        ssl_certificate_key /etc/certs/dns.example.com/privkey.pem;
+        ssl_dhparam /etc/nginx/ssl/dhparam.pem;
+}
+```
+
+The client side is identical to the [simple setup](#simple-setup)
 
 ## License
 DOH Proxy is BSD-licensed.
