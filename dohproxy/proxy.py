@@ -15,7 +15,7 @@ import io
 import ssl
 
 from dohproxy import constants, utils
-from dohproxy.protocol import DNSClientProtocol
+from dohproxy.protocol import DNSClientProtocol, DOHParamsException
 
 
 from typing import List, Tuple
@@ -144,25 +144,11 @@ class H2Protocol(asyncio.Protocol):
             return
 
         if method == 'GET':
-            if constants.DOH_CONTENT_TYPE_PARAM in params and \
-                    len(params[constants.DOH_CONTENT_TYPE_PARAM]):
-                ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
-                if not ct:
-                    # An empty value indicates the default
-                    # application/dns-udpwireformat type
-                    ct = constants.DOH_MEDIA_TYPE
-            else:
-                self.return_400(stream_id, body=b'Missing Content Type')
+            try:
+                ct, body = utils.extract_ct_body(params)
+            except DOHParamsException as e:
+                self.return_400(stream_id, body=e.args[0])
                 return
-
-            if constants.DOH_BODY_PARAM in params and \
-                    len(params[constants.DOH_BODY_PARAM]):
-                body = utils.doh_b64_decode(
-                    params[constants.DOH_BODY_PARAM][0])
-            else:
-                self.return_400(stream_id, body=b'Missing Body')
-                return
-
         else:
             body = request_data.data.getvalue()
             ct = headers.get('content-type')

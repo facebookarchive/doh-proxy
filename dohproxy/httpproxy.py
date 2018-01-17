@@ -13,7 +13,7 @@ import dns.message
 import dns.rcode
 
 from dohproxy import constants, utils
-from dohproxy.protocol import DNSClientProtocol
+from dohproxy.protocol import DNSClientProtocol, DOHParamsException
 
 
 def parse_args():
@@ -57,26 +57,10 @@ async def doh1handler(request):
     path, params = utils.extract_path_params(request.rel_url.path_qs)
 
     if request.method == 'GET':
-        if constants.DOH_CONTENT_TYPE_PARAM in params and \
-                len(params[constants.DOH_CONTENT_TYPE_PARAM]):
-            ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
-            if not ct:
-                # An empty value indicates the default
-                # application/dns-udpwireformat type
-                ct = constants.DOH_MEDIA_TYPE
-        else:
-            return aiohttp.web.Response(
-                status=400,
-                body=b'Missing Content Type'
-            )
-
-        if constants.DOH_BODY_PARAM in params and \
-                len(params[constants.DOH_BODY_PARAM]):
-            body = utils.doh_b64_decode(
-                params[constants.DOH_BODY_PARAM][0])
-        else:
-            return aiohttp.web.Response(status=400, body=b'Missing Body')
-
+        try:
+            ct, body = utils.extract_ct_body(params)
+        except DOHParamsException as e:
+            return aiohttp.web.Response(status=400, body=e.args[0])
     else:
         body = request.content.read()
         ct = request.headers.get('content-type')

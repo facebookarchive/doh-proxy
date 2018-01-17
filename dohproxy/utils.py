@@ -7,13 +7,14 @@
 # LICENSE file in the root directory of this source tree.
 #
 import argparse
+import binascii
 import base64
 import logging
 import urllib.parse
 
 from typing import Dict, List, Tuple
 
-from dohproxy import constants
+from dohproxy import constants, protocol
 
 
 def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
@@ -22,6 +23,39 @@ def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
     p = urllib.parse.urlparse(url)
     params = urllib.parse.parse_qs(p.query, keep_blank_values=True)
     return p.path, params
+
+
+def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
+    """ Extract the content type and body from a list of get parameters.
+    :param params: A dictionary of key/value of parameters as provided by
+        urllib.parse.parse_qs
+    :return: a tuple that contains a string and bytes, respectively ct and
+        body.
+    :raises: a DOHParamsException with an explanatory message.
+    """
+    if constants.DOH_CONTENT_TYPE_PARAM in params and \
+            len(params[constants.DOH_CONTENT_TYPE_PARAM]):
+        ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
+        if not ct:
+            # An empty value indicates the default
+            # application/dns-udpwireformat type
+            ct = constants.DOH_MEDIA_TYPE
+    else:
+        raise protocol.DOHParamsException(b'Missing Content Type Parameter')
+
+    if constants.DOH_BODY_PARAM in params and \
+            len(params[constants.DOH_BODY_PARAM]):
+        try:
+            body = doh_b64_decode(
+                params[constants.DOH_BODY_PARAM][0])
+        except binascii.Error:
+            raise protocol.DOHParamsException(b'Invalid Body Parameter')
+        if not body:
+            raise protocol.DOHParamsException(b'Missing Body')
+    else:
+        raise protocol.DOHParamsException(b'Missing Body Parameter')
+
+    return ct, body
 
 
 def doh_b64_encode(s: bytes) -> str:
