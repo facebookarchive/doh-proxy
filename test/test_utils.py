@@ -79,6 +79,34 @@ class TestMakeURL(unittest.TestCase):
         self.assertEqual(utils.make_url(domain, uri), output)
 
 
+class TestBuildQueryParams(unittest.TestCase):
+
+    def test_has_right_keys(self):
+        """ Check that this function returns body and ct parameters only. """
+        keys = set(
+            [constants.DOH_BODY_PARAM, constants.DOH_CONTENT_TYPE_PARAM]
+        )
+        self.assertEqual(keys, utils.build_query_params(b'').keys())
+
+    def test_query_must_be_bytes(self):
+        """ Check that this function raises when we pass a string. """
+        with self.assertRaises(TypeError):
+            utils.build_query_params('')
+
+    def test_query_accepts_bytes(self):
+        """ Check that this function accepts a bytes-object. """
+        utils.build_query_params(b'')
+
+    def test_body_b64encoded(self):
+        """ Check that this function is b64 encoding the content of body. """
+        q = b''
+        params = utils.build_query_params(q)
+        self.assertEqual(
+            utils.doh_b64_encode(q),
+            params[constants.DOH_BODY_PARAM]
+        )
+
+
 class TestTypoChecker(unittest.TestCase):
     def test_client_base_parser(self):
         """ Basic test to check that there is no stupid typos.
@@ -89,6 +117,12 @@ class TestTypoChecker(unittest.TestCase):
         """ Basic test to check that there is no stupid typos.
         """
         utils.configure_logger()
+
+    def test_configure_logger_unknown_level(self):
+        """ Basic test to check that there is no stupid typos.
+        """
+        with self.assertRaises(Exception):
+            utils.configure_logger(level='thisisnotalevel')
 
 
 def extract_path_params_source():
