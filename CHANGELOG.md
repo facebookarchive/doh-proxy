@@ -4,7 +4,8 @@
 ### Added
 - Travis CI
 - Support multiple query over the same HTTP2 connection.
-- doh-httpproxy
+- started adding some unittests to utils.py
+- `dohprxy/httpproxy.py` a HTTP1 proxy to run as a reverse proxy backend.
 
 ### Changed
 - code refactor between stub and client
@@ -12,6 +13,7 @@
 - stub and client now use the same StubServerProtocol as the base to perform
   queries.
 - proxy: use logging module instead of print
+- doc: improved documentation and provide example setups.
 
 ### Removed
 - dependency on hyper package
