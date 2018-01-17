@@ -4,6 +4,7 @@
 ### Added
 - Travis CI
 - Support multiple query over the same HTTP2 connection.
+- doh-httpproxy
 
 ### Changed
 - code refactor between stub and client
