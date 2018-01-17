@@ -51,6 +51,7 @@ setup(
     ],
     tests_require=[
         'pytest',
+        'pytest-cov',
         'unittest-data-provider',
     ],
     entry_points={
