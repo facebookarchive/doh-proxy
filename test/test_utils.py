@@ -113,6 +113,26 @@ class TestTypoChecker(unittest.TestCase):
         """
         utils.client_parser_base()
 
+    def test_proxy_base_parser_noargs(self):
+        """ We must provide a port parameter to proxy_parser_base. """
+        with self.assertRaises(TypeError):
+            utils.proxy_parser_base()
+
+    def test_proxy_base_default_secure(self):
+        """ If we don't specify `secure`, it will default to secure. """
+        p = utils.proxy_parser_base(port=80)
+        args, left = p.parse_known_args()
+        # This would raise if certfile is not in Namespace
+        args.certfile
+
+    def test_proxy_base_non_secure_no_certfile(self):
+        """ If not using TLS, we don't suggest TLS related arguments. """
+        p = utils.proxy_parser_base(port=80, secure=False)
+        args, left = p.parse_known_args()
+        # This would raise if certfile is not in Namespace
+        with self.assertRaises(AttributeError):
+            args.certfile
+
     def test_configure_logger(self):
         """ Basic test to check that there is no stupid typos.
         """

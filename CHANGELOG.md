@@ -4,6 +4,9 @@
 ### Fixed
 - proxy: handle empty ct parameter
 
+### Changed
+- proxies and stub will listen to ::1 by default.
+
 ## [0.0.2] - 2018-01-16
 ### Added
 - Travis CI

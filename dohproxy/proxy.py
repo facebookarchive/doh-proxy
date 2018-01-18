@@ -6,7 +6,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
-import argparse
 import asyncio
 import collections
 import dns.message
@@ -33,42 +32,7 @@ RequestData = collections.namedtuple('RequestData', ['headers', 'data'])
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--port',
-        default=443,
-        type=int,
-        help='Port to listen on. Default: [%(default)s]',
-    )
-    parser.add_argument(
-        '--upstream-resolver',
-        default='::1',
-        help='Upstream recursive resolver to send the query to. '
-             'Default: [%(default)s]',
-    )
-    parser.add_argument(
-        '--certfile',
-        help='SSL cert file.'
-    )
-    parser.add_argument(
-        '--keyfile',
-        help='SSL key file.'
-    )
-    parser.add_argument(
-        '--uri',
-        default=constants.DOH_URI,
-        help='DNS API URI. Default [%(default)s]',
-    )
-    parser.add_argument(
-        '--level',
-        default='DEBUG',
-        help='log level [%(default)s]',
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Debugging messages...'
-    )
+    parser = utils.proxy_parser_base(port=443, secure=True)
     return parser.parse_args()
 
 
@@ -295,6 +259,7 @@ def main():
             upstream_resolver=args.upstream_resolver,
             uri=args.uri,
             logger=logger),
+        host=args.listen_address,
         port=args.port,
         ssl=ssl_ctx)
     server = loop.run_until_complete(coro)

@@ -145,6 +145,53 @@ def client_parser_base():
     return parser
 
 
+def proxy_parser_base(*, port: int,
+                      secure: bool = True) -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--listen-address',
+        default='::1',
+        help='The address the proxy should listen on. Default: [%(default)s]'
+    )
+    parser.add_argument(
+        '--port', '--listen-port',
+        default=port,
+        type=int,
+        help='Port to listen on. Default: [%(default)s]',
+    )
+    if secure:
+        parser.add_argument(
+            '--certfile',
+            help='SSL cert file.'
+        )
+        parser.add_argument(
+            '--keyfile',
+            help='SSL key file.'
+        )
+    parser.add_argument(
+        '--upstream-resolver',
+        default='::1',
+        help='Upstream recursive resolver to send the query to. '
+             'Default: [%(default)s]',
+    )
+    parser.add_argument(
+        '--uri',
+        default=constants.DOH_URI,
+        help='DNS API URI. Default [%(default)s]',
+    )
+    parser.add_argument(
+        '--level',
+        default='DEBUG',
+        help='log level [%(default)s]',
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Debugging messages...'
+    )
+    return parser
+
+
 def configure_logger(name='', level='DEBUG'):
     """
     :param name: (optional) name of the logger, default: ''.

@@ -7,7 +7,6 @@
 # LICENSE file in the root directory of this source tree.
 #
 import aiohttp.web
-import argparse
 import asyncio
 import dns.message
 import dns.rcode
@@ -17,39 +16,7 @@ from dohproxy.protocol import DNSClientProtocol, DOHParamsException
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--listen-address',
-        default=None,
-        help='The address the proxy should listen on. Default: [%(default)s]'
-    )
-    parser.add_argument(
-        '--port',
-        default=80,
-        type=int,
-        help='Port to listen on. Default: [%(default)s]',
-    )
-    parser.add_argument(
-        '--upstream-resolver',
-        default='::1',
-        help='Upstream recursive resolver to send the query to. '
-             'Default: [%(default)s]',
-    )
-    parser.add_argument(
-        '--uri',
-        default=constants.DOH_URI,
-        help='DNS API URI. Default [%(default)s]',
-    )
-    parser.add_argument(
-        '--level',
-        default='DEBUG',
-        help='log level [%(default)s]',
-    )
-    parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Debugging messages...'
-    )
+    parser = utils.proxy_parser_base(port=80, secure=False)
     return parser.parse_args()
 
 

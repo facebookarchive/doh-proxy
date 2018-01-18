@@ -20,7 +20,7 @@ def parse_args():
     )
     parser.add_argument(
         '--listen-address',
-        default=None,
+        default='::1',
         help='The address the stub should listen on. Default: [%(default)s]'
     )
 
