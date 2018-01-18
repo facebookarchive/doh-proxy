@@ -11,6 +11,7 @@ import aioh2
 import asyncio
 import dns.entropy
 import dns.message
+import priority
 import ssl
 import urllib.parse
 
@@ -117,6 +118,8 @@ class StubServerProtocol:
         if self.client is None or self.client._conn is None:
             await self.setup_client()
 
+        client = self.client
+
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri
         qid = dnsq.id
@@ -145,24 +148,36 @@ class StubServerProtocol:
             ('content-length', str(len(body))),
         ])
         # Start request with headers
-        stream_id = await self.client.start_request(
-            headers,
-            end_stream=not body)
-
+        # FIXME: Find a better way to close old streams. See GH#11
+        try:
+            stream_id = await client.start_request(
+                headers,
+                end_stream=not body)
+        except priority.priority.TooManyStreamsError:
+            await self.setup_client()
+            client = self.client
+            stream_id = await client.start_request(
+                headers,
+                end_stream=not body)
+        self.logger.debug(
+            'Stream ID: {} / Total streams: {}'.format(
+                stream_id, len(client._streams)
+            )
+        )
         # Send my name "world" as whole request body
         if body:
-            await self.client.send_data(stream_id, body, end_stream=True)
+            await client.send_data(stream_id, body, end_stream=True)
 
         # Receive response headers
-        headers = await self.client.recv_response(stream_id)
+        headers = await client.recv_response(stream_id)
         self.logger.debug('Response headers: {}'.format(headers))
 
         # Read all response body
-        resp = await self.client.read_stream(stream_id, -1)
+        resp = await client.read_stream(stream_id, -1)
         dnsr = dns.message.from_wire(resp)
         dnsr.id = qid
         self.on_answer(addr, dnsr.to_wire())
 
         # Read response trailers
-        trailers = await self.client.recv_trailers(stream_id)
+        trailers = await client.recv_trailers(stream_id)
         self.logger.debug('Response trailers: {}'.format(trailers))
