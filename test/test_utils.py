@@ -8,6 +8,7 @@
 #
 
 import binascii
+import dns.message
 import unittest
 
 from dohproxy import constants
@@ -216,3 +217,22 @@ class TestExtractCtBody(unittest.TestCase):
         path, params = utils.extract_path_params(uri)
         with self.assertRaisesRegex(protocol.DOHParamsException, output):
             utils.extract_ct_body(params)
+
+
+class TestDNSQueryFromBody(unittest.TestCase):
+    def test_invalid_message_no_debug(self):
+        body = 'a'
+        with self.assertRaisesRegex(
+                protocol.DOHDNSException, 'Malformed DNS query'):
+            utils.dns_query_from_body(body)
+
+    def test_invalid_message_with_debug(self):
+        body = 'a'
+        with self.assertRaisesRegex(
+                protocol.DOHDNSException, 'is too short'):
+            utils.dns_query_from_body(body, debug=True)
+
+    def test_valid_message(self):
+        dnsq = dns.message.Message()
+        body = dnsq.to_wire()
+        self.assertEqual(utils.dns_query_from_body(body), dnsq)

@@ -12,7 +12,11 @@ import dns.message
 import dns.rcode
 
 from dohproxy import constants, utils
-from dohproxy.protocol import DNSClientProtocol, DOHParamsException
+from dohproxy.protocol import (
+    DNSClientProtocol,
+    DOHDNSException,
+    DOHParamsException,
+)
 
 
 def parse_args():
@@ -27,7 +31,7 @@ async def doh1handler(request):
         try:
             ct, body = utils.extract_ct_body(params)
         except DOHParamsException as e:
-            return aiohttp.web.Response(status=400, body=e.args[0])
+            return aiohttp.web.Response(status=400, body=e.body())
     else:
         body = request.content.read()
         ct = request.headers.get('content-type')
@@ -38,6 +42,11 @@ async def doh1handler(request):
         )
 
     # Do actual DNS Query
+    try:
+        dnsq = utils.dns_query_from_body(body, debug=request.app.debug)
+    except DOHDNSException as e:
+        return aiohttp.web.Response(status=400, body=e.body())
+
     dnsq = dns.message.from_wire(body)
     request.app.logger.info(
         '[HTTPS] Received: ID {} Question {} Peer {}'.format(
@@ -101,7 +110,7 @@ def main():
     args = parse_args()
 
     logger = utils.configure_logger('doh-httpproxy', args.level)
-    app = DOHApplication(logger=logger)
+    app = DOHApplication(logger=logger, debug=args.debug)
     app.set_upstream_resolver(args.upstream_resolver)
     app.router.add_get(args.uri, doh1handler)
     aiohttp.web.run_app(app, host=args.listen_address, port=args.port)

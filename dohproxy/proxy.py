@@ -14,7 +14,11 @@ import io
 import ssl
 
 from dohproxy import constants, utils
-from dohproxy.protocol import DNSClientProtocol, DOHParamsException
+from dohproxy.protocol import (
+    DNSClientProtocol,
+    DOHDNSException,
+    DOHParamsException,
+)
 
 
 from typing import List, Tuple
@@ -37,13 +41,15 @@ def parse_args():
 
 
 class H2Protocol(asyncio.Protocol):
-    def __init__(self, upstream_resolver=None, uri=None, logger=None):
+    def __init__(self, upstream_resolver=None, uri=None, logger=None,
+                 debug=False):
         config = H2Configuration(client_side=False, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
         self.logger = logger
         if logger is None:
             self.logger = utils.configure_logger('doh-proxy', 'DEBUG')
         self.transport = None
+        self.debug = debug
         self.stream_data = {}
         self.upstream_resolver = upstream_resolver
         self.uri = constants.DOH_URI if uri is None else uri
@@ -111,7 +117,7 @@ class H2Protocol(asyncio.Protocol):
             try:
                 ct, body = utils.extract_ct_body(params)
             except DOHParamsException as e:
-                self.return_400(stream_id, body=e.args[0])
+                self.return_400(stream_id, body=e.body())
                 return
         else:
             body = request_data.data.getvalue()
@@ -122,7 +128,12 @@ class H2Protocol(asyncio.Protocol):
             return
 
         # Do actual DNS Query
-        dnsq = dns.message.from_wire(body)
+        try:
+            dnsq = utils.dns_query_from_body(body, self.debug)
+        except DOHDNSException as e:
+            self.return_400(stream_id, body=e.body())
+            return
+
         self.logger.info(
             '[HTTPS] Received: ID {} Question {} Peer {}'.format(
                 dnsq.id,
@@ -258,7 +269,8 @@ def main():
         lambda: H2Protocol(
             upstream_resolver=args.upstream_resolver,
             uri=args.uri,
-            logger=logger),
+            logger=logger,
+            debug=args.debug),
         host=args.listen_address,
         port=args.port,
         ssl=ssl_ctx)
