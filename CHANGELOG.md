@@ -6,6 +6,7 @@
 
 ### Changed
 - proxies and stub will listen to ::1 by default.
+- proxies better handle malformed DNS messages
 
 ## [0.0.2] - 2018-01-16
 ### Added

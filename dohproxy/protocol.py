@@ -17,7 +17,17 @@ import urllib.parse
 from dohproxy import constants, utils
 
 
-class DOHParamsException(Exception):
+class DOHException(Exception):
+
+    def body(self):
+        return self.args[0]
+
+
+class DOHParamsException(DOHException):
+    pass
+
+
+class DOHDNSException(DOHException):
     pass
 
 

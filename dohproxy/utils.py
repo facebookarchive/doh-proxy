@@ -9,6 +9,8 @@
 import argparse
 import binascii
 import base64
+import dns.exception
+import dns.message
 import logging
 import urllib.parse
 
@@ -56,6 +58,25 @@ def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
         raise protocol.DOHParamsException(b'Missing Body Parameter')
 
     return ct, body
+
+
+def dns_query_from_body(
+        body: bytes,
+        debug: bool = False) -> dns.message.Message:
+    """ Given a bytes-object, attempt to unpack a DNS Message.
+    :param body: the bytes-object wired representation of a DNS message.
+    :param debug: a boolean. When True, The error message sent to client will
+    be more meaningful.
+    :return: a dns.message.Message on success, raises DOHDNSException
+    otherwise.
+    """
+    exc = b'Malformed DNS query'
+    try:
+        return dns.message.from_wire(body)
+    except Exception as e:
+        if debug:
+            exc = str(e).encode('utf-8')
+    raise protocol.DOHDNSException(exc)
 
 
 def doh_b64_encode(s: bytes) -> str:
