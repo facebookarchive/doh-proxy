@@ -259,6 +259,7 @@ def main():
             upstream_resolver=args.upstream_resolver,
             uri=args.uri,
             logger=logger),
+        host=args.listen_address,
         port=args.port,
         ssl=ssl_ctx)
     server = loop.run_until_complete(coro)
