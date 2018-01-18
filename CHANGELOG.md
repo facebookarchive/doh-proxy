@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+
+## [0.0.3] - 2018-01-17
+
 ### Fixed
 - proxy: handle empty ct parameter
 
@@ -40,5 +43,6 @@
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.1...v0.0.2
