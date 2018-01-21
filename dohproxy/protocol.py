@@ -67,6 +67,7 @@ class StubServerProtocol:
     def __init__(self, args, logger=None):
         self.logger = logger
         self.args = args
+        self._lock = asyncio.Lock()
         if logger is None:
             self.logger = utils.configure_logger('StubServerProtocol')
         self.client = None
@@ -115,10 +116,11 @@ class StubServerProtocol:
 
         # FIXME: maybe aioh2 should allow registering to connection_lost event
         # so we can find out when the connection get disconnected.
-        if self.client is None or self.client._conn is None:
-            await self.setup_client()
+        with await self._lock:
+            if self.client is None or self.client._conn is None:
+                await self.setup_client()
 
-        client = self.client
+            client = self.client
 
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri

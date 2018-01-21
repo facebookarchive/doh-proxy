@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changes
+- ensure only 1 client is initialized at a time.
+
 ## [0.0.3] - 2018-01-17
 
 ### Fixed
