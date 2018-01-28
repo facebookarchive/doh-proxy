@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+## [0.0.4] - 2018-01-27
+
+### Fixed
+- Create new connection on TooManyStreamsError to work around GH decentfox/aioh2#16
+
 ### Changes
 - ensure only 1 client is initialized at a time.
 
@@ -46,6 +51,7 @@
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.1...v0.0.2
