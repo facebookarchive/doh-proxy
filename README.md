@@ -254,6 +254,8 @@ $ doh-httpproxy --upstream-resolver ::1 --port 8080 --listen-address=::1
 $ doh-httpproxy --upstream-resolver ::1 --port 8081 --listen-address=::1
 ```
 
+Also see how to  [run `doh-httpproxy` under `systemd`](#running-doh-httpproxy-under-systemd)
+
 And then the relevant Nginx config would look like:
 
 ```
@@ -284,6 +286,55 @@ server {
         ssl_dhparam /etc/nginx/ssl/dhparam.pem;
 }
 ```
+
+### Running doh-httpproxy under systemd
+
+#### Create a dedicated user
+```bash
+adduser -r doh-proxy \
+    -d /var/lib/doh-proxy \
+    -c 'DOH Proxy server' \
+    -s /sbin/nologin \
+    -U
+mkdir /var/lib/doh-proxy \
+    && chown doh-proxy: /var/lib/doh-proxy \
+    && chown 700 /var/lib/doh-proxy
+```
+
+#### Create a `doh-httpproxy` unit file
+
+```bash
+cat <<EOF > /etc/systemd/system/doh-httpproxy\@.service
+[Unit]
+Description=DOH HTTP Proxy on %I
+After=syslog.target network.target
+Before=nginx.target
+
+[Service]
+Type=simple
+ExecStart=/bin/doh-httpproxy --upstream-resolver ::1 --level DEBUG --listen-address=127.0.0.1 --port %I
+Restart=always
+User=doh-proxy
+Group=doh-proxy
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl reload-daemon
+```
+
+#### Set symlinks for each ports you want doh-httpproxy to run on run it
+
+```bash
+for i in 8080 8081
+do
+    ln -s /etc/systemd/system/doh-httpproxy\@.service \
+        /etc/systemd/system/doh-httpproxy\@${i}.service
+    systemctl start doh-httpproxy@${i}
+done
+```
+
 
 The client side is identical to the [simple setup](#simple-setup)
 
