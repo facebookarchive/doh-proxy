@@ -169,15 +169,15 @@ class TestExtractPathParams(unittest.TestCase):
 def extract_ct_body_valid_source():
     return [
         (
-            '/foo?ct&body=aW1wYXJhbGxlbGVk',
+            '/foo?ct&dns=aW1wYXJhbGxlbGVk',
             (constants.DOH_MEDIA_TYPE, b'imparalleled'),
         ),
         (
-            '/foo?ct=&body=aW1wYXJhbGxlbGVk',
+            '/foo?ct=&dns=aW1wYXJhbGxlbGVk',
             (constants.DOH_MEDIA_TYPE, b'imparalleled'),
         ),
         (
-            '/foo?ct=bar&body=aW1wYXJhbGxlbGVk',
+            '/foo?ct=bar&dns=aW1wYXJhbGxlbGVk',
             ('bar', b'imparalleled'),
         )
     ]
@@ -186,11 +186,11 @@ def extract_ct_body_valid_source():
 def extract_ct_body_invalid_source():
     return [
         (
-            '/foo?body=aW1wYXJhbGxlbGVk',
+            '/foo?dns=aW1wYXJhbGxlbGVk',
             'Missing Content Type Parameter',
         ),
         (
-            '/foo?ct=&body=',
+            '/foo?ct=&dns=',
             'Missing Body',
         ),
         (
@@ -198,7 +198,7 @@ def extract_ct_body_invalid_source():
             'Missing Body Parameter',
         ),
         (
-            '/foo?ct=bar&body=_',
+            '/foo?ct=bar&dns=_',
             'Invalid Body Parameter',
         )
     ]
