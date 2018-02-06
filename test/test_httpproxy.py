@@ -105,7 +105,7 @@ class HTTPProxyGETTestCase(HTTPProxyTestCase):
         """ Test that when an empty body is provided, we return 400.
         """
         params = utils.build_query_params(self.dnsq.to_wire())
-        params[constants.DOH_BODY_PARAM] = ''
+        params[constants.DOH_DNS_PARAM] = ''
         request = await self.client.request(
             self.method,
             self.endpoint,
@@ -119,7 +119,7 @@ class HTTPProxyGETTestCase(HTTPProxyTestCase):
         """ Test that when an invalid body is provided, we return 400.
         """
         params = utils.build_query_params(self.dnsq.to_wire())
-        params[constants.DOH_BODY_PARAM] = 'dummy'
+        params[constants.DOH_DNS_PARAM] = 'dummy'
         request = await self.client.request(
             self.method,
             self.endpoint,

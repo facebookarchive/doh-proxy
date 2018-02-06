@@ -85,7 +85,7 @@ class TestBuildQueryParams(unittest.TestCase):
     def test_has_right_keys(self):
         """ Check that this function returns body and ct parameters only. """
         keys = {
-            constants.DOH_BODY_PARAM, constants.DOH_CONTENT_TYPE_PARAM
+            constants.DOH_DNS_PARAM, constants.DOH_CONTENT_TYPE_PARAM
         }
         self.assertEqual(keys, utils.build_query_params(b'').keys())
 
@@ -104,7 +104,7 @@ class TestBuildQueryParams(unittest.TestCase):
         params = utils.build_query_params(q)
         self.assertEqual(
             utils.doh_b64_encode(q),
-            params[constants.DOH_BODY_PARAM]
+            params[constants.DOH_DNS_PARAM]
         )
 
 
