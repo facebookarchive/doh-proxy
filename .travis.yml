@@ -11,7 +11,9 @@ install:
 
 script:
   # Install and Run flake8
+  - pip install flake8
   - python setup.py flake8
+  - flake8 test
   # Run unittests
   - python setup.py test
   # Attempt to install

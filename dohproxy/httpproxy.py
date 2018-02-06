@@ -19,9 +19,9 @@ from dohproxy.protocol import (
 )
 
 
-def parse_args():
+def parse_args(args=None):
     parser = utils.proxy_parser_base(port=80, secure=False)
-    return parser.parse_args()
+    return parser.parse_args(args=args)
 
 
 async def doh1handler(request):
@@ -33,7 +33,7 @@ async def doh1handler(request):
         except DOHParamsException as e:
             return aiohttp.web.Response(status=400, body=e.body())
     else:
-        body = request.content.read()
+        body = await request.content.read()
         ct = request.headers.get('content-type')
 
     if ct != constants.DOH_MEDIA_TYPE:
@@ -106,13 +106,18 @@ class DOHApplication(aiohttp.web.Application):
         )
 
 
-def main():
-    args = parse_args()
-
+def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
     app.set_upstream_resolver(args.upstream_resolver)
     app.router.add_get(args.uri, doh1handler)
+    app.router.add_post(args.uri, doh1handler)
+    return app
+
+
+def main():
+    args = parse_args()
+    app = get_app(args)
     aiohttp.web.run_app(app, host=args.listen_address, port=args.port)
 
 

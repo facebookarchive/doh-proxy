@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+- Unittest coverage of httpproxy.py
+
+### Changes
+- @jedisct1 change DOH_BODY_PARAM to `dns` to match draft-ietf-doh-dns-over-https-03
+
+### Fixed
+- support POST in doh-httpproxy. GH #12
+
+
 ## [0.0.4] - 2018-01-27
 
 ### Fixed
