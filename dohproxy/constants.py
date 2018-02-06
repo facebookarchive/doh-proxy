@@ -7,7 +7,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-DOH_URI = '/.well-known/dns-query'
+DOH_URI = '/dns-query'
 DOH_MEDIA_TYPE = 'application/dns-udpwireformat'
 DOH_CONTENT_TYPE_PARAM = 'ct'
 DOH_BODY_PARAM = 'dns'
