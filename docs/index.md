@@ -7,7 +7,7 @@ layout: default
 [![PyPI version](https://badge.fury.io/py/doh-proxy.svg)](https://badge.fury.io/py/doh-proxy)
 
 A set of python 3 scripts that supports proxying DNS over HTTPS as specified
-in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02).
+in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-03).
 
 DOH provides a way to run encrypted DNS over HTTPS, a protocol which can freely
 traverse firewalls when other encrypted mechanism may be blocked.
@@ -347,11 +347,14 @@ DOH Proxy is BSD-licensed.
 
 ## [Unreleased]
 
+## [0.0.5] - 2018-02-05
+
 ### Added
 - Unittest coverage of httpproxy.py
 
 ### Changes
 - @jedisct1 change DOH_BODY_PARAM to `dns` to match draft-ietf-doh-dns-over-https-03
+- removed .well-known from default URI GH #15
 
 ### Fixed
 - support POST in doh-httpproxy. GH #12
@@ -406,7 +409,8 @@ DOH Proxy is BSD-licensed.
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.1...v0.0.2

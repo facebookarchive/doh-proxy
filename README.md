@@ -4,7 +4,7 @@
 [![PyPI version](https://badge.fury.io/py/doh-proxy.svg)](https://badge.fury.io/py/doh-proxy)
 
 A set of python 3 scripts that supports proxying DNS over HTTPS as specified
-in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02).
+in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-03).
 
 DOH provides a way to run encrypted DNS over HTTPS, a protocol which can freely
 traverse firewalls when other encrypted mechanism may be blocked.
