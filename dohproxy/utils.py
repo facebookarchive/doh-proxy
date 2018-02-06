@@ -45,11 +45,11 @@ def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
     else:
         raise protocol.DOHParamsException(b'Missing Content Type Parameter')
 
-    if constants.DOH_BODY_PARAM in params and \
-            len(params[constants.DOH_BODY_PARAM]):
+    if constants.DOH_DNS_PARAM in params and \
+            len(params[constants.DOH_DNS_PARAM]):
         try:
             body = doh_b64_decode(
-                params[constants.DOH_BODY_PARAM][0])
+                params[constants.DOH_DNS_PARAM][0])
         except binascii.Error:
             raise protocol.DOHParamsException(b'Invalid Body Parameter')
         if not body:
@@ -100,7 +100,7 @@ def build_query_params(dns_query):
     """Given a wire-format DNS query, build the query parameters.
     """
     return {
-        constants.DOH_BODY_PARAM: doh_b64_encode(dns_query),
+        constants.DOH_DNS_PARAM: doh_b64_encode(dns_query),
         constants.DOH_CONTENT_TYPE_PARAM: constants.DOH_MEDIA_TYPE,
     }
 
