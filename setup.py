@@ -50,7 +50,9 @@ setup(
         'dnspython',
     ],
     tests_require=[
+        'asynctest',
         'pytest',
+        'pytest-aiohttp',
         'pytest-cov',
         'unittest-data-provider',
     ],
