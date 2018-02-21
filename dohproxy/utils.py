@@ -16,7 +16,7 @@ import urllib.parse
 
 from typing import Dict, List, Tuple
 
-from dohproxy import constants, protocol
+from dohproxy import constants, protocol, __version__
 
 
 def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
@@ -163,6 +163,11 @@ def client_parser_base():
         action='store_true',
         help=argparse.SUPPRESS,
     )
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s {}'.format(__version__)
+    )
     return parser
 
 
@@ -215,6 +220,11 @@ def proxy_parser_base(*, port: int,
         '--debug',
         action='store_true',
         help='Debugging messages...'
+    )
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='%(prog)s {}'.format(__version__),
     )
     return parser
 
