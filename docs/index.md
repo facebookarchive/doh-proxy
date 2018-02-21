@@ -347,6 +347,15 @@ DOH Proxy is BSD-licensed.
 
 ## [Unreleased]
 
+## [0.0.6] - 2018-02-20
+
+### Added
+- custom upstream port option GH #16
+- display version with --version
+
+### Fixed
+- set :scheme pseudo-header correctly.  GH #17
+
 ## [0.0.5] - 2018-02-05
 
 ### Added
@@ -409,7 +418,8 @@ DOH Proxy is BSD-licensed.
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.2...v0.0.3
