@@ -60,15 +60,16 @@ async def doh1handler(request):
 
 class DOHApplication(aiohttp.web.Application):
 
-    def set_upstream_resolver(self, upstream_resolver):
+    def set_upstream_resolver(self, upstream_resolver, upstream_port):
         self.upstream_resolver = upstream_resolver
+        self.upstream_port = upstream_port
 
     async def resolve(self, request, dnsq):
         qid = dnsq.id
         queue = asyncio.Queue(maxsize=1)
         await self.loop.create_datagram_endpoint(
                 lambda: DNSClientProtocol(dnsq, queue, logger=self.logger),
-                remote_addr=(self.upstream_resolver, 53))
+                remote_addr=(self.upstream_resolver, self.upstream_port))
 
         self.logger.debug("Waiting for DNS response")
         try:
@@ -109,7 +110,7 @@ class DOHApplication(aiohttp.web.Application):
 def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
-    app.set_upstream_resolver(args.upstream_resolver)
+    app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
     app.router.add_get(args.uri, doh1handler)
     app.router.add_post(args.uri, doh1handler)
     return app

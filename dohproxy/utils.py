@@ -196,6 +196,12 @@ def proxy_parser_base(*, port: int,
              'Default: [%(default)s]',
     )
     parser.add_argument(
+        '--upstream-port',
+        default=53,
+        help='Upstream recursive resolver port to send the query to. '
+             'Default: [%(default)s]',
+    )
+    parser.add_argument(
         '--uri',
         default=constants.DOH_URI,
         help='DNS API URI. Default [%(default)s]',
