@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - custom upstream port option GH #16
+- display version with --version
 
 ### Fixed
 - set :scheme pseudo-header correctly.  GH #17
