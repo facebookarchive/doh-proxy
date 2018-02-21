@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- set :scheme pseudo-header correctly.  GH #17
 
 ## [0.0.5] - 2018-02-05
 
