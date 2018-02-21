@@ -131,7 +131,7 @@ class StubServerProtocol:
         headers = [
             (':authority', self.args.domain),
             (':method', self.args.post and 'POST' or 'GET'),
-            (':scheme', 'h2'),
+            (':scheme', 'https'),
         ]
         if self.args.post:
             headers.append(('content-type', constants.DOH_MEDIA_TYPE))
