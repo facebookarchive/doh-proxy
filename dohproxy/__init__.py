@@ -7,4 +7,4 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-__version__ = '0.0.5'
+__version__ = '0.0.6'
