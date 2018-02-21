@@ -41,8 +41,8 @@ def parse_args():
 
 
 class H2Protocol(asyncio.Protocol):
-    def __init__(self, upstream_resolver=None, uri=None, logger=None,
-                 debug=False):
+    def __init__(self, upstream_resolver=None, upstream_port=None,
+                 uri=None, logger=None, debug=False):
         config = H2Configuration(client_side=False, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
         self.logger = logger
@@ -52,9 +52,12 @@ class H2Protocol(asyncio.Protocol):
         self.debug = debug
         self.stream_data = {}
         self.upstream_resolver = upstream_resolver
+        self.upstream_port = upstream_port
         self.uri = constants.DOH_URI if uri is None else uri
         assert upstream_resolver is not None, \
             'An upstream resolver must be provided'
+        assert upstream_port is not None, \
+            'An upstream resolver port must be provided'
 
     def connection_made(self, transport: asyncio.Transport):  # type: ignore
         self.transport = transport
@@ -179,7 +182,7 @@ class H2Protocol(asyncio.Protocol):
         queue = asyncio.Queue(maxsize=1)
         await loop.create_datagram_endpoint(
                 lambda: DNSClientProtocol(dnsq, queue),
-                remote_addr=(self.upstream_resolver, 53))
+                remote_addr=(self.upstream_resolver, self.upstream_port))
 
         self.logger.debug("Waiting for DNS response")
         try:
@@ -268,6 +271,7 @@ def main():
     coro = loop.create_server(
         lambda: H2Protocol(
             upstream_resolver=args.upstream_resolver,
+            upstream_port=args.upstream_port,
             uri=args.uri,
             logger=logger,
             debug=args.debug),

@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- custom upstream port option GH #16
+
 ### Fixed
 - set :scheme pseudo-header correctly.  GH #17
 
