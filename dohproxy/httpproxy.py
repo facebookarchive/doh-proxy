@@ -49,9 +49,8 @@ async def doh1handler(request):
 
     dnsq = dns.message.from_wire(body)
     request.app.logger.info(
-        '[HTTPS] Received: ID {} Question {} Peer {}'.format(
-            dnsq.id,
-            dnsq.question[0],
+        '[HTTPS] Received: {} Peer {}'.format(
+            utils.dnsmsg2log(dnsq),
             request.transport.get_extra_info('peername'),
         )
     )
@@ -92,9 +91,8 @@ class DOHApplication(aiohttp.web.Application):
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
         self.logger.info(
-            '[HTTPS] Send: ID {} Question {} Peer {}'.format(
-                dnsr.id,
-                dnsr.question[0],
+            '[HTTPS] Send: {} Peer {}'.format(
+                utils.dnsmsg2log(dnsr),
                 request.transport.get_extra_info('peername')
             )
         )
