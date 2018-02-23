@@ -347,6 +347,10 @@ DOH Proxy is BSD-licensed.
 
 ## [Unreleased]
 
+### Fixed
+
+- Handle dns message with empty question section GH #21
+
 ## [0.0.6] - 2018-02-20
 
 ### Added
