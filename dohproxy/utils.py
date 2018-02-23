@@ -11,12 +11,26 @@ import binascii
 import base64
 import dns.exception
 import dns.message
+import dns.rcode
 import logging
 import urllib.parse
 
 from typing import Dict, List, Tuple
 
 from dohproxy import constants, protocol, __version__
+
+
+def dnsmsg2log(msg: dns.message.Message) -> str:
+    """ Helper function to return a printable excerpt from a dns message object.
+    It handles basic things like potentially empty quesiton section.
+    """
+    question = msg.question[0] if len(msg.question) else '<empty>'
+    return 'ID [{}] RCODE [{}] FLAGS [{}] QUESTION [{}]'.format(
+        msg.id,
+        dns.rcode.to_text(msg.rcode()),
+        dns.flags.to_text(msg.flags),
+        question,
+    )
 
 
 def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:

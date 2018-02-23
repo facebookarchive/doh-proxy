@@ -138,9 +138,8 @@ class H2Protocol(asyncio.Protocol):
             return
 
         self.logger.info(
-            '[HTTPS] Received: ID {} Question {} Peer {}'.format(
-                dnsq.id,
-                dnsq.question[0],
+            '[HTTPS] Received: {} Peer {}'.format(
+                utils.dnsmsg2log(dnsq),
                 self.transport.get_extra_info('peername'),
             )
         )
@@ -158,9 +157,8 @@ class H2Protocol(asyncio.Protocol):
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
         self.logger.info(
-            '[HTTPS] Send: ID {} Question {} Peer {}'.format(
-                dnsr.id,
-                dnsr.question[0],
+            '[HTTPS] Send: {} Peer {}'.format(
+                utils.dnsmsg2log(dnsr),
                 self.transport.get_extra_info('peername')
             )
         )

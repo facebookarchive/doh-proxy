@@ -44,14 +44,12 @@ class DNSClientProtocol:
     def connection_made(self, transport):
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
-        self.logger.info(
-            '[DNS] Send: ID {} {}'.format(self.dnsq.id, self.dnsq.question[0]))
+        self.logger.info('[DNS] Send: {}'.format(utils.dnsmsg2log(self.dnsq)))
         self.transport.sendto(self.dnsq.to_wire())
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        self.logger.info(
-            '[DNS] Received: ID {} {}'.format(dnsr.id, dnsr.question[0]))
+        self.logger.info('[DNS] Received: {}'.format(utils.dnsmsg2log(dnsr)))
         self.queue.put_nowait(dnsr)
         self.transport.close()
 
