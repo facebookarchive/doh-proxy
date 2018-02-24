@@ -348,8 +348,13 @@ DOH Proxy is BSD-licensed.
 ## [Unreleased]
 
 ### Fixed
-
 - Handle dns message with empty question section GH #21
+
+### Changes
+- separate server side protocol classes from client side ones
+
+### Added
+- support listening from multiple IPs for proxy services.
 
 ## [0.0.6] - 2018-02-20
 
