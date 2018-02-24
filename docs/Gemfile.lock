@@ -233,6 +233,7 @@ PLATFORMS
 
 DEPENDENCIES
   github-pages
+  jekyll-relative-links
 
 BUNDLED WITH
    1.16.1

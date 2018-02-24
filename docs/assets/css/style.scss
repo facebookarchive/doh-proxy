@@ -1,0 +1,14 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+#menu_links {
+}
+
+#menu_links a{
+    color: #F2F2F2;
+    text-decoration: underline;
+    font-weight: bold;
+    padding: 5px;
+}
