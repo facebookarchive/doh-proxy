@@ -8,6 +8,9 @@
 ### Changes
 - separate server side protocol classes from client side ones
 
+### Added
+- support listening from multiple IPs for proxy services.
+
 ## [0.0.6] - 2018-02-20
 
 ### Added
