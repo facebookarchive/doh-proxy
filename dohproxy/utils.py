@@ -17,7 +17,7 @@ import urllib.parse
 
 from typing import Dict, List, Tuple
 
-from dohproxy import constants, protocol, __version__
+from dohproxy import constants, server_protocol, __version__
 
 
 def dnsmsg2log(msg: dns.message.Message) -> str:
@@ -57,7 +57,8 @@ def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
             # application/dns-udpwireformat type
             ct = constants.DOH_MEDIA_TYPE
     else:
-        raise protocol.DOHParamsException(b'Missing Content Type Parameter')
+        raise server_protocol.DOHParamsException(
+            b'Missing Content Type Parameter')
 
     if constants.DOH_DNS_PARAM in params and \
             len(params[constants.DOH_DNS_PARAM]):
@@ -65,11 +66,11 @@ def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
             body = doh_b64_decode(
                 params[constants.DOH_DNS_PARAM][0])
         except binascii.Error:
-            raise protocol.DOHParamsException(b'Invalid Body Parameter')
+            raise server_protocol.DOHParamsException(b'Invalid Body Parameter')
         if not body:
-            raise protocol.DOHParamsException(b'Missing Body')
+            raise server_protocol.DOHParamsException(b'Missing Body')
     else:
-        raise protocol.DOHParamsException(b'Missing Body Parameter')
+        raise server_protocol.DOHParamsException(b'Missing Body Parameter')
 
     return ct, body
 
@@ -90,7 +91,7 @@ def dns_query_from_body(
     except Exception as e:
         if debug:
             exc = str(e).encode('utf-8')
-    raise protocol.DOHDNSException(exc)
+    raise server_protocol.DOHDNSException(exc)
 
 
 def doh_b64_encode(s: bytes) -> str:

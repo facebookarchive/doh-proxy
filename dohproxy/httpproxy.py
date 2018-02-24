@@ -12,7 +12,7 @@ import dns.message
 import dns.rcode
 
 from dohproxy import constants, utils
-from dohproxy.protocol import (
+from dohproxy.server_protocol import (
     DNSClientProtocol,
     DOHDNSException,
     DOHParamsException,

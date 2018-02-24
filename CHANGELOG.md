@@ -3,8 +3,10 @@
 ## [Unreleased]
 
 ### Fixed
-
 - Handle dns message with empty question section GH #21
+
+### Changes
+- separate server side protocol classes from client side ones
 
 ## [0.0.6] - 2018-02-20
 
