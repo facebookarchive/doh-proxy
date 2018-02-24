@@ -8,7 +8,7 @@
 #
 import asyncio
 
-from dohproxy import protocol, utils
+from dohproxy import client_protocol, utils
 
 
 def parse_args():
@@ -34,7 +34,7 @@ def main():
     logger.info("Starting UDP server")
     # One protocol instance will be created to serve all client requests
     listen = loop.create_datagram_endpoint(
-        lambda: protocol.StubServerProtocol(args, logger=logger),
+        lambda: client_protocol.StubServerProtocol(args, logger=logger),
         local_addr=(args.listen_address, args.listen_port))
     transport, proto = loop.run_until_complete(listen)
     loop.run_until_complete(proto.setup_client())

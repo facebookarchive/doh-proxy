@@ -13,7 +13,7 @@ import dns.rcode
 import unittest
 
 from dohproxy import constants
-from dohproxy import protocol
+from dohproxy import server_protocol
 from dohproxy import utils
 from unittest_data_provider import data_provider
 
@@ -216,7 +216,8 @@ class TestExtractCtBody(unittest.TestCase):
     @data_provider(extract_ct_body_invalid_source)
     def test_extract_ct_body_invalid(self, uri, output):
         path, params = utils.extract_path_params(uri)
-        with self.assertRaisesRegex(protocol.DOHParamsException, output):
+        with self.assertRaisesRegex(
+                server_protocol.DOHParamsException, output):
             utils.extract_ct_body(params)
 
 
@@ -224,13 +225,13 @@ class TestDNSQueryFromBody(unittest.TestCase):
     def test_invalid_message_no_debug(self):
         body = 'a'
         with self.assertRaisesRegex(
-                protocol.DOHDNSException, 'Malformed DNS query'):
+                server_protocol.DOHDNSException, 'Malformed DNS query'):
             utils.dns_query_from_body(body)
 
     def test_invalid_message_with_debug(self):
         body = 'a'
         with self.assertRaisesRegex(
-                protocol.DOHDNSException, 'is too short'):
+                server_protocol.DOHDNSException, 'is too short'):
             utils.dns_query_from_body(body, debug=True)
 
     def test_valid_message(self):

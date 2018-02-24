@@ -14,7 +14,7 @@ import io
 import ssl
 
 from dohproxy import constants, utils
-from dohproxy.protocol import (
+from dohproxy.server_protocol import (
     DNSClientProtocol,
     DOHDNSException,
     DOHParamsException,

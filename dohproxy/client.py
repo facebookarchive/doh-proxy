@@ -9,10 +9,10 @@
 import asyncio
 import dns.message
 
-from dohproxy import protocol, utils
+from dohproxy import client_protocol, utils
 
 
-class Client(protocol.StubServerProtocol):
+class Client(client_protocol.StubServerProtocol):
     def on_answer(self, addr, msg):
         try:
             print(dns.message.from_wire(msg))
