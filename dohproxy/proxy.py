@@ -266,20 +266,21 @@ def main():
     logger = utils.configure_logger('doh-proxy', args.level)
     ssl_ctx = ssl_context(args)
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(
-        lambda: H2Protocol(
-            upstream_resolver=args.upstream_resolver,
-            upstream_port=args.upstream_port,
-            uri=args.uri,
-            logger=logger,
-            debug=args.debug),
-        host=args.listen_address,
-        port=args.port,
-        ssl=ssl_ctx)
-    server = loop.run_until_complete(coro)
+    for addr in args.listen_address:
+        coro = loop.create_server(
+            lambda: H2Protocol(
+                upstream_resolver=args.upstream_resolver,
+                upstream_port=args.upstream_port,
+                uri=args.uri,
+                logger=logger,
+                debug=args.debug),
+            host=addr,
+            port=args.port,
+            ssl=ssl_ctx)
+        server = loop.run_until_complete(coro)
 
-    # Serve requests until Ctrl+C is pressed
-    logger.info('Serving on {}'.format(server))
+        # Serve requests until Ctrl+C is pressed
+        logger.info('Serving on {}'.format(server))
     try:
         loop.run_forever()
     except KeyboardInterrupt:

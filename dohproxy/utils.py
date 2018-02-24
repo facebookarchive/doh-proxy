@@ -191,8 +191,10 @@ def proxy_parser_base(*, port: int,
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--listen-address',
-        default='::1',
-        help='The address the proxy should listen on. Default: [%(default)s]'
+        default=['::1'],
+        nargs='+',
+        help='A list of addresses the proxy should listen on. '
+             'Default: [%(default)s]'
     )
     parser.add_argument(
         '--port', '--listen-port',
