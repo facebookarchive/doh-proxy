@@ -2,6 +2,7 @@
 layout: default
 ---
 
+# DNS over HTTPS with NGINX/DOH-PROXY/Unbound on CentOS7
 
 This tutorial will cover installing a working `doh-proxy` setup fronted by [NGINX](http://nginx.org/).
 
