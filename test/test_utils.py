@@ -10,6 +10,8 @@
 import binascii
 import dns.message
 import dns.rcode
+import ssl
+import tempfile
 import unittest
 
 from dohproxy import constants
@@ -22,6 +24,29 @@ from unittest_data_provider import data_provider
 # do
 #    echo -e "(b'$line', '$(echo -n $line | base64 | tr -d '='  )',),"
 # done
+
+TEST_CA = (
+    "-----BEGIN CERTIFICATE-----\n"
+    "MIIDVzCCAj+gAwIBAgIJAOGYgypV1bcIMA0GCSqGSIb3DQEBCwUAMEIxCzAJBgNV\n"
+    "BAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQg\n"
+    "Q29tcGFueSBMdGQwHhcNMTgwMjI2MjIxODA3WhcNMjgwMjI0MjIxODA3WjBCMQsw\n"
+    "CQYDVQQGEwJYWDEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZh\n"
+    "dWx0IENvbXBhbnkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n"
+    "zkceT8GjMPz7e6nU30CO6aEonx3iszpNXpa+nH31M1NBs4wF2Rli9M1exyX2tAu9\n"
+    "gr4ImpIXurryeT61RJYprRBLBdy2FBwx7tgSOeaxZupnQkfd7HwtBJD3dg7cBGpe\n"
+    "RbJ44CQozLt0n16FM7yX2NwBxBxMKG+Brqo+PB9dR219Nzh5jB/UTWH21rrMYjiW\n"
+    "ABa0OnMh/oc/YGSuR7ymtYWIKL2u3fZ1wV6yCblAKDIhAOhxY3yL6SxyS4uE2j8i\n"
+    "XuMNCApD7mKbS3DGK6/H/zbn5jVwpzPr1FCPCkuWixoFH9Om6d7+x0HPrrO7yYND\n"
+    "5cNxqR8mpsy2tpHDG+9MyQIDAQABo1AwTjAdBgNVHQ4EFgQUxLNYNYbSS7j6P6Wh\n"
+    "UwToShMPcPIwHwYDVR0jBBgwFoAUxLNYNYbSS7j6P6WhUwToShMPcPIwDAYDVR0T\n"
+    "BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEACj/aXTKWStuM7PaiGzeuDHCyIRMm\n"
+    "fDoRndTZXMH3bKmIb+2DlTjcLvHUeFSs21opssPL1U1fcvJRi3Yd5DYboiKILjO/\n"
+    "0iNVGx6CPMiZZsYb+yeoA2ZtVqe/HoKzmeak4nP/QTv5xYRtFgSzXFmEPuC8CWdr\n"
+    "xBdVAGX08H8vYlQk72YjKS/eJ6WbrijU0OnI3ZVlhMmlhwzW1cr/QmJSPoTsbS+a\n"
+    "3c2aLV6NGplhmr2CuqqznDKT/QfxSk5qMoKAMdtA4iT5S5fPG5kGExt2MD+aimOw\n"
+    "DOeHuyCLRXxIolT+8r2BY56sV1uYyuBFw0RAnEpmnc2d072DND6XcDeQCw==\n"
+    "-----END CERTIFICATE-----"
+)
 
 
 def b64_source():
@@ -268,3 +293,43 @@ class TestDNSMsg2Log(unittest.TestCase):
         r.set_rcode(dns.rcode.REFUSED)
         r.question = []
         utils.dnsmsg2log(r)
+
+
+class TestSSLContext(unittest.TestCase):
+    def setUp(self):
+        self._CA = TEST_CA
+        self._CA_serial = "E198832A55D5B708"
+
+        # ALPN requires >=openssl-1.0.2
+        # NPN requires >=openssl-1.0.1
+        for fn in ['set_alpn_protocols', 'set_npn_protocols']:
+            patcher = unittest.mock.patch('ssl.SSLContext.{0}'.format(fn))
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_insecure_context(self):
+        """
+        Test that insecure flag creates a context where verify method is
+        CERT_NONE
+        """
+        sslctx = utils.create_custom_ssl_context(insecure=True)
+        self.assertEqual(sslctx.verify_mode, ssl.CERT_NONE)
+
+    def test_secure_context(self):
+        """
+        Test that if insecure is False, the ssl context created has
+        CERT_REQUIRED as the verify method
+        """
+        sslctx = utils.create_custom_ssl_context(insecure=False)
+        self.assertEqual(sslctx.verify_mode, ssl.CERT_REQUIRED)
+
+    def test_cafile(self):
+        with tempfile.NamedTemporaryFile() as ca:
+            ca.write(self._CA.encode())
+            ca.flush()
+            sslctx = utils.create_custom_ssl_context(
+                insecure=False,
+                cafile=ca.name
+            )
+            self.assertTrue(self._CA_serial in [crt['serialNumber'] for crt
+                            in sslctx.get_ca_certs()])

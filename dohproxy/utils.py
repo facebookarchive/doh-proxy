@@ -13,9 +13,10 @@ import dns.exception
 import dns.message
 import dns.rcode
 import logging
+import ssl
 import urllib.parse
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from dohproxy import constants, server_protocol, __version__
 
@@ -39,6 +40,33 @@ def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
     p = urllib.parse.urlparse(url)
     params = urllib.parse.parse_qs(p.query, keep_blank_values=True)
     return p.path, params
+
+
+def create_custom_ssl_context(
+        *,
+        insecure: bool,
+        cafile: Optional[str] = None) -> ssl.SSLContext:
+    """ Create a custom SSL context
+    :param insecure: Disable certificate verification if True
+    :param cafile: Pass custom CA file for cert verification
+    :return: An instance of ssl.SSLContext with our configuration
+    """
+
+    if insecure:
+        sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+        sslctx.options |= ssl.OP_NO_SSLv2
+        sslctx.options |= ssl.OP_NO_SSLv3
+        sslctx.options |= ssl.OP_NO_COMPRESSION
+        sslctx.set_default_verify_paths()
+    else:
+        sslctx = ssl.create_default_context()
+        if cafile:
+            sslctx.load_verify_locations(cafile=cafile, capath=None)
+
+    sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
+    sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
+
+    return sslctx
 
 
 def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
@@ -172,6 +200,11 @@ def client_parser_base():
         '--level',
         default='DEBUG',
         help='log level [%(default)s]',
+    )
+    parser.add_argument(
+        '--cafile',
+        default=None,
+        help='Specify custom CA file for cert verification'
     )
     parser.add_argument(
         '--insecure',
