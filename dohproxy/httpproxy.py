@@ -7,6 +7,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 import aiohttp.web
+import aiohttp_remotes
 import asyncio
 import dns.message
 import dns.rcode
@@ -40,6 +41,9 @@ async def doh1handler(request):
         return aiohttp.web.Response(
             status=415, body=b'Unsupported content type'
         )
+
+    # Put client IP address in the request
+    request.clone(remote=request.headers.get('X-Forwarded-For'))
 
     # Do actual DNS Query
     try:
@@ -91,9 +95,10 @@ class DOHApplication(aiohttp.web.Application):
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
         self.logger.info(
-            '[HTTPS] Send: {} Peer {}'.format(
+            '[HTTPS] Send: {} Peer {} Client {}'.format(
                 utils.dnsmsg2log(dnsr),
-                request.transport.get_extra_info('peername')
+                request.transport.get_extra_info('peername'),
+                request.remote
             )
         )
         body = dnsr.to_wire()
@@ -108,6 +113,15 @@ class DOHApplication(aiohttp.web.Application):
 def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
+
+    # Get trusted reverse proxies and format it for aiohttp_remotes setup
+    # trusted_reverse_proxies =
+    # [[trusted_host] for trusted_host in args.trusted]
+
+    asyncio.ensure_future(aiohttp_remotes.setup(
+        app,
+        aiohttp_remotes.XForwardedRelaxed())
+    )
     app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
     app.router.add_get(args.uri, doh1handler)
     app.router.add_post(args.uri, doh1handler)

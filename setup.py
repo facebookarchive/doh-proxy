@@ -63,8 +63,9 @@ setup(
     ],
     install_requires=[
         'aioh2 >= 0.2.1',
-        'aiohttp',
+        'aiohttp >= 2.3.0',
         'dnspython',
+        'aiohttp_remotes'
     ],
     tests_require=[
         'asynctest',
