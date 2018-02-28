@@ -135,7 +135,7 @@ def main():
     args = parse_args()
     app = get_app(args)
 
-    ssl_context =  setup_ssl(args)
+    ssl_context = setup_ssl(args)
 
     aiohttp.web.run_app(
         app, host=args.listen_address, port=args.port, ssl_context=ssl_context)

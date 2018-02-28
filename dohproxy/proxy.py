@@ -11,7 +11,6 @@ import collections
 import dns.message
 import dns.rcode
 import io
-import ssl
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
