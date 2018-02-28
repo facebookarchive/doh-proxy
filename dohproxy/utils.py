@@ -42,6 +42,25 @@ def extract_path_params(url: str) -> Tuple[str, Dict[str, List[str]]]:
     return p.path, params
 
 
+def create_ssl_context(options: argparse.Namespace,
+                       http2: bool = False) -> ssl.SSLContext:
+    """ Create SSL Context for the proxies
+    :param options: where to find the certile and the keyfile
+    :param http2: enable http2 into the context
+    :return: An instance of ssl.SSLContext to be used by the proxies
+    """
+
+    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ctx.load_cert_chain(options.certfile, keyfile=options.keyfile)
+    if http2:
+        ctx.set_alpn_protocols(["h2"])
+    ctx.options |= (ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
+                    | ssl.OP_NO_COMPRESSION)
+    ctx.set_ciphers(constants.DOH_CIPHERS)
+
+    return ctx
+
+
 def create_custom_ssl_context(
         *,
         insecure: bool,
@@ -235,15 +254,16 @@ def proxy_parser_base(*, port: int,
         type=int,
         help='Port to listen on. Default: [%(default)s]',
     )
-    if secure:
-        parser.add_argument(
-            '--certfile',
-            help='SSL cert file.'
-        )
-        parser.add_argument(
-            '--keyfile',
-            help='SSL key file.'
-        )
+    parser.add_argument(
+        '--certfile',
+        help='SSL cert file.',
+        required=secure
+    )
+    parser.add_argument(
+        '--keyfile',
+        help='SSL key file.',
+        required=secure
+    )
     parser.add_argument(
         '--upstream-resolver',
         default='::1',

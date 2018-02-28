@@ -11,7 +11,6 @@ import collections
 import dns.message
 import dns.rcode
 import io
-import ssl
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
@@ -249,22 +248,10 @@ class H2Protocol(asyncio.Protocol):
             stream_data.data.write(data)
 
 
-def ssl_context(options):
-    ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    ctx.load_cert_chain(options.certfile, keyfile=options.keyfile)
-    ctx.set_alpn_protocols(["h2"])
-    ctx.options |= (
-        ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1 | ssl.OP_NO_COMPRESSION
-    )
-    ctx.set_ciphers("ECDHE+AESGCM")
-
-    return ctx
-
-
 def main():
     args = parse_args()
     logger = utils.configure_logger('doh-proxy', args.level)
-    ssl_ctx = ssl_context(args)
+    ssl_ctx = utils.create_ssl_context(args, http2=True)
     loop = asyncio.get_event_loop()
     for addr in args.listen_address:
         coro = loop.create_server(
