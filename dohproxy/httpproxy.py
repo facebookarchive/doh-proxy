@@ -11,6 +11,8 @@ import asyncio
 import dns.message
 import dns.rcode
 
+from argparse import ArgumentParser, Namespace
+
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
     DNSClientProtocol,
@@ -105,6 +107,21 @@ class DOHApplication(aiohttp.web.Application):
         )
 
 
+def setup_ssl(options: Namespace):
+    """ Setup the SSL Context """
+    ssl_context = None
+
+    # If SSL is wanted, both certfile and keyfile must
+    # be passed
+    if bool(options.certfile) ^ bool(options.keyfile):
+        ArgumentParser.error('To use SSL both --certfile and --keyfile must be'
+                             'passed')
+    elif options.certfile and options.keyfile:
+        ssl_context = utils.create_ssl_context(options)
+
+    return ssl_context
+
+
 def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
@@ -117,7 +134,11 @@ def get_app(args):
 def main():
     args = parse_args()
     app = get_app(args)
-    aiohttp.web.run_app(app, host=args.listen_address, port=args.port)
+
+    ssl_context =  setup_ssl(args)
+
+    aiohttp.web.run_app(
+        app, host=args.listen_address, port=args.port, ssl_context=ssl_context)
 
 
 if __name__ == '__main__':

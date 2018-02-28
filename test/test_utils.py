@@ -13,6 +13,9 @@ import dns.rcode
 import ssl
 import tempfile
 import unittest
+import argparse
+
+from unittest.mock import patch, MagicMock
 
 from dohproxy import constants
 from dohproxy import server_protocol
@@ -145,20 +148,21 @@ class TestTypoChecker(unittest.TestCase):
         with self.assertRaises(TypeError):
             utils.proxy_parser_base()
 
-    def test_proxy_base_default_secure(self):
-        """ If we don't specify `secure`, it will default to secure. """
+    def test_proxy_base_default_secure_require_certs(self):
+        """ If secure (default), will ask for the certfile and keyfile """
         p = utils.proxy_parser_base(port=80)
-        args, left = p.parse_known_args()
-        # This would raise if certfile is not in Namespace
-        args.certfile
+        # Since we are secure, we need --certfile and --keyfile
+        with self.assertRaises(SystemExit) as e:
+            args, left = p.parse_known_args()
+        self.assertEqual(e.exception.code, 2)  # exit status must be 2
 
     def test_proxy_base_non_secure_no_certfile(self):
         """ If not using TLS, we don't suggest TLS related arguments. """
         p = utils.proxy_parser_base(port=80, secure=False)
         args, left = p.parse_known_args()
-        # This would raise if certfile is not in Namespace
-        with self.assertRaises(AttributeError):
-            args.certfile
+        # The values for cerfile and keyfile must be empty
+        self.assertIsNone(args.certfile)
+        self.assertIsNone(args.keyfile)
 
     def test_configure_logger(self):
         """ Basic test to check that there is no stupid typos.
@@ -293,6 +297,29 @@ class TestDNSMsg2Log(unittest.TestCase):
         r.set_rcode(dns.rcode.REFUSED)
         r.question = []
         utils.dnsmsg2log(r)
+
+
+@patch('ssl.SSLContext.set_alpn_protocols', MagicMock())
+@patch('ssl.SSLContext.load_cert_chain', MagicMock())
+class TestProxySSLContext(unittest.TestCase):
+    def setUp(self):
+        self.args = argparse.Namespace()
+        self.args.certfile = None
+        self.args.keyfile = None
+
+    def test_proxy_ssl_context(self):
+        """ Test a default ssl context, it should have http2 disabled """
+        ssl_context = utils.create_ssl_context(self.args)
+        self.assertIsInstance(ssl_context, ssl.SSLContext)
+        # don't enable http2
+        self.assertEqual(ssl_context.set_alpn_protocols.called, 0)
+
+    def test_proxy_ssl_context_http2_enabled(self):
+        """ Test a ssl context with http2 enabled """
+        ssl_context = utils.create_ssl_context(self.args, http2=True)
+        self.assertIsInstance(ssl_context, ssl.SSLContext)
+        # enable http2
+        self.assertEqual(ssl_context.set_alpn_protocols.called, 1)
 
 
 class TestSSLContext(unittest.TestCase):
