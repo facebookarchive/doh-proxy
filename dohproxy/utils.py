@@ -56,7 +56,7 @@ def create_ssl_context(options: argparse.Namespace,
         ctx.set_alpn_protocols(["h2"])
     ctx.options |= (ssl.OP_NO_TLSv1 | ssl.OP_NO_TLSv1_1
                     | ssl.OP_NO_COMPRESSION)
-    ctx.set_ciphers("ECDHE+AESGCM")
+    ctx.set_ciphers(constants.DOH_CIPHERS)
 
     return ctx
 

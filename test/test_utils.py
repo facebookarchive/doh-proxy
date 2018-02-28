@@ -306,6 +306,7 @@ class TestProxySSLContext(unittest.TestCase):
         self.args = argparse.Namespace()
         self.args.certfile = None
         self.args.keyfile = None
+        constants.DOH_CIPHERS = ssl._DEFAULT_CIPHERS
 
     def test_proxy_ssl_context(self):
         """ Test a default ssl context, it should have http2 disabled """
