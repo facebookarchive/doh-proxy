@@ -22,6 +22,14 @@ from dohproxy.server_protocol import (
 
 def parse_args(args=None):
     parser = utils.proxy_parser_base(port=80, secure=False)
+    parser.add_argument(
+        '--trusted',
+        nargs='*',
+        default=['::1', '127.0.0.1'],
+        help='Trusted reverse proxy list separated by space %(default)s. \
+            If you do not want to add a trusted trusted reverse proxy, \
+            just specify this flag with empty parameters.',
+    )
     return parser.parse_args(args=args)
 
 
@@ -41,9 +49,6 @@ async def doh1handler(request):
         return aiohttp.web.Response(
             status=415, body=b'Unsupported content type'
         )
-
-    # Put client IP address in the request
-    request.clone(remote=request.headers.get('X-Forwarded-For'))
 
     # Do actual DNS Query
     try:
@@ -115,12 +120,15 @@ def get_app(args):
     app = DOHApplication(logger=logger, debug=args.debug)
 
     # Get trusted reverse proxies and format it for aiohttp_remotes setup
-    # trusted_reverse_proxies =
-    # [[trusted_host] for trusted_host in args.trusted]
+    if len(args.trusted) == 0:
+        x_forwarded_handling = aiohttp_remotes.XForwardedRelaxed()
+    else:
+        x_forwarded_handling = \
+            aiohttp_remotes.XForwardedStrict([args.trusted])
 
     asyncio.ensure_future(aiohttp_remotes.setup(
         app,
-        aiohttp_remotes.XForwardedRelaxed())
+        x_forwarded_handling)
     )
     app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
     app.router.add_get(args.uri, doh1handler)

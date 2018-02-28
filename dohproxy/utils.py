@@ -243,12 +243,6 @@ def proxy_parser_base(*, port: int,
         action='version',
         version='%(prog)s {}'.format(__version__),
     )
-    parser.add_argument(
-        '--trusted',
-        nargs='+',
-        default=['::1', '127.0.0.1'],
-        help='Trusted reverse proxy list separated by space %(default)s',
-    )
     return parser
 
 
