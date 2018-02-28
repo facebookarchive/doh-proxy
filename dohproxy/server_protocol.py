@@ -9,7 +9,7 @@
 
 import dns.entropy
 import dns.message
-
+import time
 
 from dohproxy import utils
 
@@ -40,12 +40,27 @@ class DNSClientProtocol:
     def connection_made(self, transport):
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
-        self.logger.info('[DNS] Send: {}'.format(utils.dnsmsg2log(self.dnsq)))
+        #self.logger.info('[DNS] Send: {}'.format(utils.dnsmsg2log(self.dnsq)))
+        self.logger.info(
+            '{} {}'.format(
+                self.transport.get_extra_info('peername')[0],
+                utils.dnsmsg2log(self.dnsq)
+            )
+        )
+        self.time_stamp = int(round(time.time() * 1000))
         self.transport.sendto(self.dnsq.to_wire())
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        self.logger.info('[DNS] Received: {}'.format(utils.dnsmsg2log(dnsr)))
+        #self.logger.info('[DNS] Received: {}'.format(utils.dnsmsg2log(dnsr)))
+        interval = int(round(time.time() * 1000)) - self.time_stamp
+        self.logger.info(
+            '{} {} {}'.format(
+                self.transport.get_extra_info('peername')[0],
+                utils.dnsmsg2log(dnsr),
+                interval
+            )
+        )
         self.queue.put_nowait(dnsr)
         self.transport.close()
 

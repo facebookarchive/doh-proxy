@@ -12,6 +12,7 @@ import dns.message
 import dns.rcode
 import io
 import ssl
+import time
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
@@ -137,12 +138,19 @@ class H2Protocol(asyncio.Protocol):
             self.return_400(stream_id, body=e.body())
             return
 
+        #self.logger.info(
+        #    '[HTTPS] Received: {} Peer {}'.format(
+        #        utils.dnsmsg2log(dnsq),
+        #        self.transport.get_extra_info('peername'),
+        #    )
+        #)
         self.logger.info(
-            '[HTTPS] Received: {} Peer {}'.format(
-                utils.dnsmsg2log(dnsq),
-                self.transport.get_extra_info('peername'),
+            '{} {}'.format(
+                self.transport.get_extra_info('peername')[0],
+                utils.dnsmsg2log(dnsq)
             )
         )
+        self.time_stamp = int(round(time.time() * 1000))
         asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
     def on_answer(self, stream_id, dnsr=None, dnsq=None):
@@ -156,10 +164,18 @@ class H2Protocol(asyncio.Protocol):
             ttl = min(r.ttl for r in dnsr.answer)
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
+        #self.logger.info(
+        #    '[HTTPS] Send: {} Peer {}'.format(
+        #        utils.dnsmsg2log(dnsr),
+        #        self.transport.get_extra_info('peername')
+        #    )
+        #)
+        interval = int(round(time.time() * 1000)) - self.time_stamp
         self.logger.info(
-            '[HTTPS] Send: {} Peer {}'.format(
+            '{} {} {}'.format(
+                self.transport.get_extra_info('peername')[0],
                 utils.dnsmsg2log(dnsr),
-                self.transport.get_extra_info('peername')
+                interval
             )
         )
         body = dnsr.to_wire()
@@ -182,7 +198,7 @@ class H2Protocol(asyncio.Protocol):
                 lambda: DNSClientProtocol(dnsq, queue),
                 remote_addr=(self.upstream_resolver, self.upstream_port))
 
-        self.logger.debug("Waiting for DNS response")
+        #self.logger.debug("Waiting for DNS response")
         try:
             dnsr = await asyncio.wait_for(queue.get(), 10)
             dnsr.id = qid

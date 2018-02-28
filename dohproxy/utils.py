@@ -19,17 +19,42 @@ from typing import Dict, List, Tuple
 
 from dohproxy import constants, server_protocol, __version__
 
-
+"""
 def dnsmsg2log(msg: dns.message.Message) -> str:
-    """ Helper function to return a printable excerpt from a dns message object.
+    Helper function to return a printable excerpt from a dns message object.
     It handles basic things like potentially empty quesiton section.
-    """
+
     question = msg.question[0] if len(msg.question) else '<empty>'
     return 'ID [{}] RCODE [{}] FLAGS [{}] QUESTION [{}]'.format(
         msg.id,
         dns.rcode.to_text(msg.rcode()),
         dns.flags.to_text(msg.flags),
         question,
+    )
+"""
+
+
+def dnsmsg2log(msg: dns.message.Message) -> str:
+    """ Helper function to return a readable excerpt from a dns message object.
+    It handles basic things like potentially empty quesiton section.
+    """
+    question = '<empty>'
+    if len(msg.question):
+        questions = str(msg.question[0]).split(' ')
+        qname = questions[0]
+        qclass = questions[1]
+        qtype = questions[2]
+        question = ' '.join([qname, qtype, qclass])
+    flags = '|'.join(dns.flags.to_text(msg.flags).split(' '))
+
+    return '{} {} {} {}/{}/{} {}'.format(
+        question,
+        msg.id,
+        flags,
+        len(msg.answer[0].items) if len(msg.answer) else 0,
+        len(msg.authority[0].items) if len(msg.authority) else 0,
+        len(msg.additional[0].items) if len(msg.additional) else 0,
+        dns.rcode.to_text(msg.rcode())
     )
 
 
