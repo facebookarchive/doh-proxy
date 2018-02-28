@@ -306,6 +306,9 @@ class TestProxySSLContext(unittest.TestCase):
         self.args = argparse.Namespace()
         self.args.certfile = None
         self.args.keyfile = None
+
+        # not all opnssl version may support DOH_CIPHERS, override with the one
+        # supported by the testing platform
         constants.DOH_CIPHERS = ssl._DEFAULT_CIPHERS
 
     def test_proxy_ssl_context(self):
