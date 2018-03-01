@@ -68,6 +68,8 @@ $ sudo doh-httpproxy \
     --listen-address ::1
 ```
 
+`doh-httpproxy` now also supports TLS, that you can enable passing the 
+args `--certfile` and `--keyfile` (just like `doh-proxy`)
 
 ### doh-stub
 

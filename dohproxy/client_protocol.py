@@ -11,7 +11,6 @@ import aioh2
 import asyncio
 import dns.message
 import priority
-import ssl
 import urllib.parse
 
 from dohproxy import constants, utils
@@ -30,18 +29,10 @@ class StubServerProtocol:
     async def setup_client(self):
         # Open client connection
         self.logger.debug('Opening connection to {}'.format(self.args.domain))
-        if self.args.insecure:
-            sslctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
-            sslctx.options |= ssl.OP_NO_SSLv2
-            sslctx.options |= ssl.OP_NO_SSLv3
-            sslctx.options |= ssl.OP_NO_COMPRESSION
-            sslctx.set_default_verify_paths()
-        else:
-            sslctx = ssl.create_default_context()
-
-        sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
-        sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
-
+        sslctx = utils.create_custom_ssl_context(
+            insecure=self.args.insecure,
+            cafile=self.args.cafile
+        )
         remote_addr = self.args.remote_address \
             if self.args.remote_address else self.args.domain
         self.client = await aioh2.open_connection(
