@@ -29,22 +29,22 @@ class DOHDNSException(DOHException):
 
 
 class DNSClientProtocol:
-    def __init__(self, dnsq, queue, logger=None):
+    def __init__(self, dnsq, queue, clientip, logger=None):
         self.dnsq = dnsq
         self.queue = queue
         self.transport = None
         self.logger = logger
+        self.clientip = clientip
         if logger is None:
             self.logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
 
     def connection_made(self, transport):
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
-        #self.logger.info('[DNS] Send: {}'.format(utils.dnsmsg2log(self.dnsq)))
         self.logger.info(
             '{} {}'.format(
-                self.transport.get_extra_info('peername')[0],
-                utils.dnsmsg2log(self.dnsq)
+                self.clientip,
+                utils.dnsquery2log(self.dnsq)
             )
         )
         self.time_stamp = int(round(time.time() * 1000))
@@ -52,12 +52,11 @@ class DNSClientProtocol:
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        #self.logger.info('[DNS] Received: {}'.format(utils.dnsmsg2log(dnsr)))
         interval = int(round(time.time() * 1000)) - self.time_stamp
         self.logger.info(
-            '{} {} {}'.format(
-                self.transport.get_extra_info('peername')[0],
-                utils.dnsmsg2log(dnsr),
+            '{} {} {}ms'.format(
+                self.clientip,
+                utils.dnsans2log(dnsr),
                 interval
             )
         )

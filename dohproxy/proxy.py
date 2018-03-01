@@ -54,6 +54,7 @@ class H2Protocol(asyncio.Protocol):
         self.stream_data = {}
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
+        self.time_stamp = 0
         self.uri = constants.DOH_URI if uri is None else uri
         assert upstream_resolver is not None, \
             'An upstream resolver must be provided'
@@ -138,16 +139,11 @@ class H2Protocol(asyncio.Protocol):
             self.return_400(stream_id, body=e.body())
             return
 
-        #self.logger.info(
-        #    '[HTTPS] Received: {} Peer {}'.format(
-        #        utils.dnsmsg2log(dnsq),
-        #        self.transport.get_extra_info('peername'),
-        #    )
-        #)
+        clientip = self.transport.get_extra_info('peername')[0]
         self.logger.info(
             '{} {}'.format(
-                self.transport.get_extra_info('peername')[0],
-                utils.dnsmsg2log(dnsq)
+                clientip,
+                utils.dnsquery2log(dnsq)
             )
         )
         self.time_stamp = int(round(time.time() * 1000))
@@ -164,17 +160,12 @@ class H2Protocol(asyncio.Protocol):
             ttl = min(r.ttl for r in dnsr.answer)
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
-        #self.logger.info(
-        #    '[HTTPS] Send: {} Peer {}'.format(
-        #        utils.dnsmsg2log(dnsr),
-        #        self.transport.get_extra_info('peername')
-        #    )
-        #)
+        clientip = self.transport.get_extra_info('peername')[0]
         interval = int(round(time.time() * 1000)) - self.time_stamp
         self.logger.info(
-            '{} {} {}'.format(
-                self.transport.get_extra_info('peername')[0],
-                utils.dnsmsg2log(dnsr),
+            '{} {} {}ms'.format(
+                clientip,
+                utils.dnsans2log(dnsr),
                 interval
             )
         )
@@ -194,11 +185,11 @@ class H2Protocol(asyncio.Protocol):
         qid = dnsq.id
         loop = asyncio.get_event_loop()
         queue = asyncio.Queue(maxsize=1)
+        clientip = self.transport.get_extra_info('peername')[0]
         await loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(dnsq, queue),
+                lambda: DNSClientProtocol(dnsq, queue, clientip),
                 remote_addr=(self.upstream_resolver, self.upstream_port))
 
-        #self.logger.debug("Waiting for DNS response")
         try:
             dnsr = await asyncio.wait_for(queue.get(), 10)
             dnsr.id = qid
