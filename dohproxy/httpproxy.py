@@ -118,6 +118,15 @@ class DOHApplication(aiohttp.web.Application):
 def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
+    app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
+    app.router.add_get(args.uri, doh1handler)
+    app.router.add_post(args.uri, doh1handler)
+    return app
+
+
+def main():
+    args = parse_args()
+    app = get_app(args)
 
     # Get trusted reverse proxies and format it for aiohttp_remotes setup
     if len(args.trusted) == 0:
@@ -130,15 +139,6 @@ def get_app(args):
         app,
         x_forwarded_handling)
     )
-    app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
-    app.router.add_get(args.uri, doh1handler)
-    app.router.add_post(args.uri, doh1handler)
-    return app
-
-
-def main():
-    args = parse_args()
-    app = get_app(args)
     aiohttp.web.run_app(app, host=args.listen_address, port=args.port)
 
 
