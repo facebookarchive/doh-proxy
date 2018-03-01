@@ -156,7 +156,7 @@ def main():
         app,
         x_forwarded_handling)
     )
-    
+
     ssl_context = setup_ssl(args)
     aiohttp.web.run_app(
         app, host=args.listen_address, port=args.port, ssl_context=ssl_context)
