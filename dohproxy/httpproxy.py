@@ -7,6 +7,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 import aiohttp.web
+import aiohttp_remotes
 import asyncio
 import dns.message
 import dns.rcode
@@ -24,6 +25,14 @@ from dohproxy.server_protocol import (
 
 def parse_args(args=None):
     parser = utils.proxy_parser_base(port=80, secure=False)
+    parser.add_argument(
+        '--trusted',
+        nargs='*',
+        default=['::1', '127.0.0.1'],
+        help='Trusted reverse proxy list separated by space %(default)s. \
+            If you do not want to add a trusted trusted reverse proxy, \
+            just specify this flag with empty parameters.',
+    )
     return parser.parse_args(args=args)
 
 
@@ -54,8 +63,9 @@ async def doh1handler(request):
 
     clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info(
-        '[HTTPS] {} {}'.format(
+        '[HTTPS] {} (Original IP: {}) {}'.format(
             clientip,
+            request.remote,
             utils.dnsquery2log(dnsq)
         )
     )
@@ -98,8 +108,9 @@ class DOHApplication(aiohttp.web.Application):
         clientip = request.transport.get_extra_info('peername')[0]
         interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '[HTTPS] {} {} {}ms'.format(
+            '[HTTPS] {} (Original IP: {}) {} {}ms'.format(
                 clientip,
+                request.remote,
                 utils.dnsans2log(dnsr),
                 interval
             )
@@ -134,6 +145,18 @@ def get_app(args):
     app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
     app.router.add_get(args.uri, doh1handler)
     app.router.add_post(args.uri, doh1handler)
+
+    # Get trusted reverse proxies and format it for aiohttp_remotes setup
+    if len(args.trusted) == 0:
+        x_forwarded_handling = aiohttp_remotes.XForwardedRelaxed()
+    else:
+        x_forwarded_handling = \
+            aiohttp_remotes.XForwardedStrict([args.trusted])
+
+    asyncio.ensure_future(aiohttp_remotes.setup(
+        app,
+        x_forwarded_handling)
+    )
     return app
 
 
@@ -142,7 +165,6 @@ def main():
     app = get_app(args)
 
     ssl_context = setup_ssl(args)
-
     aiohttp.web.run_app(
         app, host=args.listen_address, port=args.port, ssl_context=ssl_context)
 

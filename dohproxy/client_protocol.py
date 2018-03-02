@@ -65,7 +65,6 @@ class StubServerProtocol:
         with await self._lock:
             if self.client is None or self.client._conn is None:
                 await self.setup_client()
-
             client = self.client
 
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
