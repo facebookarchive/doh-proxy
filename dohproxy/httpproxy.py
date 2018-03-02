@@ -52,7 +52,7 @@ async def doh1handler(request):
 
     clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info(
-        '[HTTP] {} {}'.format(
+        '[HTTPS] {} {}'.format(
             clientip,
             utils.dnsquery2log(dnsq)
         )
@@ -96,7 +96,7 @@ class DOHApplication(aiohttp.web.Application):
         clientip = request.transport.get_extra_info('peername')[0]
         interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '[HTTP] {} {} {}ms'.format(
+            '[HTTPS] {} {} {}ms'.format(
                 clientip,
                 utils.dnsans2log(dnsr),
                 interval
