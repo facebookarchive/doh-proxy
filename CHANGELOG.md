@@ -10,6 +10,8 @@
 
 ### Added
 - support listening from multiple IPs for proxy services.
+- Added support for TLS in `doh-httpproxy` @lucasvasconcelos
+- Pass optional `cafile` to `doh-stub` to be able to connect to service using custom CA @fim
 
 ## [0.0.6] - 2018-02-20
 
