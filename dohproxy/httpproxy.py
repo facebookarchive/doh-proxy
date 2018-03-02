@@ -63,8 +63,9 @@ async def doh1handler(request):
 
     clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info(
-        '[HTTPS] {} {}'.format(
+        '[HTTPS] {} (Original IP: {}) {}'.format(
             clientip,
+            request.remote,
             utils.dnsquery2log(dnsq)
         )
     )
