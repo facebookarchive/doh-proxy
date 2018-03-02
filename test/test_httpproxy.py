@@ -8,6 +8,7 @@
 #
 
 import aiohttp
+import aiohttp_remotes
 import asynctest
 import dns.message
 
@@ -35,6 +36,7 @@ class HTTPProxyTestCase(AioHTTPTestCase):
             '--level', 'DEBUG',
             '--listen-address', '127.0.0.1',
             '--uri', '/dns',
+            '--trusted',
         ]
 
     async def get_application(self):
@@ -215,3 +217,56 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         self.assertEqual(request.status, 400)
         content = await request.read()
         self.assertEqual(content, b'Malformed DNS query')
+
+
+class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
+    """ Trusted parameter is set by default to [::1, 127.0.0.1].
+    See httpproxy.parse_args
+    """
+
+    def setUp(self):
+        super().setUp()
+
+    def get_args(self):
+        return [
+            '--listen-port', '0',
+            '--level', 'DEBUG',
+            '--listen-address', '127.0.0.1',
+            '--uri', '/dns',
+        ]
+
+    @asynctest.patch.object(aiohttp_remotes, 'XForwardedStrict')
+    @asynctest.patch.object(aiohttp_remotes, 'XForwardedRelaxed')
+    @unittest_run_loop
+    async def test_xforwarded_mode_with_trusted_hosts(
+        self,
+        mock_xforwarded_relaxed,
+        mock_xforwarded_strict
+    ):
+        """ Test that when the aiohttp app have some trusted hosts specified at
+        initialization, the XForwardedStrict method is applied.
+        """
+        args = self.get_args()
+        args.extend(['--trusted', ['::1', '127.0.0.1']])
+        httpproxy.get_app(httpproxy.parse_args(args))
+
+        mock_xforwarded_relaxed.assert_not_called()
+        mock_xforwarded_strict.assert_called()
+
+    @asynctest.patch.object(aiohttp_remotes, 'XForwardedStrict')
+    @asynctest.patch.object(aiohttp_remotes, 'XForwardedRelaxed')
+    @unittest_run_loop
+    async def test_xforwarded_mode_without_trusted_hosts(
+        self,
+        mock_xforwarded_relaxed,
+        mock_xforwarded_strict
+    ):
+        """ Test that when the aiohttp app have some trusted hosts specified at
+        initialization, the XForwardedStrict method is applied.
+        """
+        args = self.get_args()
+        args.extend(['--trusted'])
+        httpproxy.get_app(httpproxy.parse_args(args))
+
+        mock_xforwarded_relaxed.assert_called()
+        mock_xforwarded_strict.assert_not_called()

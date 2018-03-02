@@ -138,12 +138,6 @@ def get_app(args):
     app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
     app.router.add_get(args.uri, doh1handler)
     app.router.add_post(args.uri, doh1handler)
-    return app
-
-
-def main():
-    args = parse_args()
-    app = get_app(args)
 
     # Get trusted reverse proxies and format it for aiohttp_remotes setup
     if len(args.trusted) == 0:
@@ -156,6 +150,12 @@ def main():
         app,
         x_forwarded_handling)
     )
+    return app
+
+
+def main():
+    args = parse_args()
+    app = get_app(args)
 
     ssl_context = setup_ssl(args)
     aiohttp.web.run_app(
