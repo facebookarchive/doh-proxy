@@ -13,7 +13,6 @@ import dns.rcode
 import io
 import time
 
-
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
     DNSClientProtocol,
