@@ -9,7 +9,7 @@
 
 import dns.entropy
 import dns.message
-
+import time
 
 from dohproxy import utils
 
@@ -29,23 +29,37 @@ class DOHDNSException(DOHException):
 
 
 class DNSClientProtocol:
-    def __init__(self, dnsq, queue, logger=None):
+    def __init__(self, dnsq, queue, clientip, logger=None):
         self.dnsq = dnsq
         self.queue = queue
         self.transport = None
         self.logger = logger
+        self.clientip = clientip
         if logger is None:
             self.logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
 
     def connection_made(self, transport):
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
-        self.logger.info('[DNS] Send: {}'.format(utils.dnsmsg2log(self.dnsq)))
+        self.logger.info(
+            '[DNS] {} {}'.format(
+                self.clientip,
+                utils.dnsquery2log(self.dnsq)
+            )
+        )
+        self.time_stamp = time.time()
         self.transport.sendto(self.dnsq.to_wire())
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        self.logger.info('[DNS] Received: {}'.format(utils.dnsmsg2log(dnsr)))
+        interval = int((time.time() - self.time_stamp) * 1000)
+        self.logger.info(
+            '[DNS] {} {} {}ms'.format(
+                self.clientip,
+                utils.dnsans2log(dnsr),
+                interval
+            )
+        )
         self.queue.put_nowait(dnsr)
         self.transport.close()
 
