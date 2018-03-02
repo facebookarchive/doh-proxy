@@ -10,6 +10,7 @@ import aiohttp.web
 import asyncio
 import dns.message
 import dns.rcode
+import time
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
@@ -51,7 +52,7 @@ async def doh1handler(request):
 
     clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info(
-        '{} {}'.format(
+        '[HTTP] {} {}'.format(
             clientip,
             utils.dnsquery2log(dnsq)
         )
@@ -66,6 +67,7 @@ class DOHApplication(aiohttp.web.Application):
         self.upstream_port = upstream_port
 
     async def resolve(self, request, dnsq):
+        self.time_stamp = time.time()
         qid = dnsq.id
         queue = asyncio.Queue(maxsize=1)
         await self.loop.create_datagram_endpoint(
@@ -92,11 +94,12 @@ class DOHApplication(aiohttp.web.Application):
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
         clientip = request.transport.get_extra_info('peername')[0]
+        interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '{} {} {}ms'.format(
+            '[HTTP] {} {} {}ms'.format(
                 clientip,
                 utils.dnsans2log(dnsr),
-                0
+                interval
             )
         )
         body = dnsr.to_wire()

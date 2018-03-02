@@ -20,17 +20,36 @@ from typing import Dict, List, Tuple
 from dohproxy import constants, server_protocol, __version__
 
 
-def dnsquery2log(msg: dns.message.Message) -> str:
-    """ Helper function to return a readable excerpt from a dns query object.
+def msg2question(msg: dns.message.Message) -> str:
+    """ Helper function to return a string of name class and type
     """
     question = '<empty>'
     if len(msg.question):
-        questions = str(msg.question[0]).split(' ')
-        qname = questions[0]
-        qclass = questions[1]
-        qtype = questions[2]
-        question = ' '.join([qname, qtype, qclass])
-    flags = '/'.join(dns.flags.to_text(msg.flags).split(' '))
+        q = msg.question[0]
+        name = q.name.to_text()
+        qclass = dns.rdataclass.to_text(q.rdclass)
+        qtype = dns.rdatatype.to_text(q.rdtype)
+        question = ' '.join([name, qtype, qclass])
+    return question
+
+
+def msg2flags(msg: dns.message.Message) -> str:
+    """ Helper function to return flags in a message
+    """
+    return '/'.join(dns.flags.to_text(msg.flags).split(' '))
+
+
+def sum_items(section: list) -> int:
+    """ Helper function to return items in a section of dns answer
+    """
+    return sum(len(x) for x in section)
+
+
+def dnsquery2log(msg: dns.message.Message) -> str:
+    """ Helper function to return a readable excerpt from a dns query object.
+    """
+    question = msg2question(msg)
+    flags = msg2flags(msg)
 
     return '{} {} {}'.format(
         question,
@@ -42,22 +61,16 @@ def dnsquery2log(msg: dns.message.Message) -> str:
 def dnsans2log(msg: dns.message.Message) -> str:
     """ Helper function to return a readable excerpt from a dns answer object.
     """
-    question = '<empty>'
-    if len(msg.question):
-        questions = str(msg.question[0]).split(' ')
-        qname = questions[0]
-        qclass = questions[1]
-        qtype = questions[2]
-        question = ' '.join([qname, qtype, qclass])
-    flags = '/'.join(dns.flags.to_text(msg.flags).split(' '))
+    question = msg2question(msg)
+    flags = msg2flags(msg)
 
     return '{} {} {} {}/{}/{} {}/{}/{} {}'.format(
         question,
         msg.id,
         flags,
-        len(msg.answer[0].items) if len(msg.answer) else 0,
-        len(msg.authority[0].items) if len(msg.authority) else 0,
-        len(msg.additional[0].items) if len(msg.additional) else 0,
+        sum_items(msg.answer),
+        sum_items(msg.authority),
+        sum_items(msg.additional),
         msg.edns,
         msg.ednsflags,
         msg.payload,

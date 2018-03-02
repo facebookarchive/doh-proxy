@@ -42,19 +42,19 @@ class DNSClientProtocol:
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
         self.logger.info(
-            '{} {}'.format(
+            '[DNS] {} {}'.format(
                 self.clientip,
                 utils.dnsquery2log(self.dnsq)
             )
         )
-        self.time_stamp = int(round(time.time() * 1000))
+        self.time_stamp = time.time()
         self.transport.sendto(self.dnsq.to_wire())
 
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
-        interval = int(round(time.time() * 1000)) - self.time_stamp
+        interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '{} {} {}ms'.format(
+            '[DNS] {} {} {}ms'.format(
                 self.clientip,
                 utils.dnsans2log(dnsr),
                 interval

@@ -141,12 +141,12 @@ class H2Protocol(asyncio.Protocol):
 
         clientip = self.transport.get_extra_info('peername')[0]
         self.logger.info(
-            '{} {}'.format(
+            '[HTTPS] {} {}'.format(
                 clientip,
                 utils.dnsquery2log(dnsq)
             )
         )
-        self.time_stamp = int(round(time.time() * 1000))
+        self.time_stamp = time.time()
         asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
     def on_answer(self, stream_id, dnsr=None, dnsq=None):
@@ -161,9 +161,9 @@ class H2Protocol(asyncio.Protocol):
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
         clientip = self.transport.get_extra_info('peername')[0]
-        interval = int(round(time.time() * 1000)) - self.time_stamp
+        interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '{} {} {}ms'.format(
+            '[HTTPS] {} {} {}ms'.format(
                 clientip,
                 utils.dnsans2log(dnsr),
                 interval

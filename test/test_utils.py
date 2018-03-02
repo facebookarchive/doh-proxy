@@ -240,7 +240,7 @@ class TestDNSQueryFromBody(unittest.TestCase):
         self.assertEqual(utils.dns_query_from_body(body), dnsq)
 
 
-class TestDNSMsg2Log(unittest.TestCase):
+class TestDNSQuery2Log(unittest.TestCase):
 
     def setUp(self):
         self._qname = 'example.com'
@@ -251,14 +251,14 @@ class TestDNSMsg2Log(unittest.TestCase):
         """
         test that no exception is thrown with a legitimate query.
         """
-        utils.dnsmsg2log(self._q)
+        utils.dnsquery2log(self._q)
 
     def test_valid_response(self):
         """
         test that no exception is thrown with a legitimate response.
         """
         r = dns.message.make_response(self._q, recursion_available=True)
-        utils.dnsmsg2log(r)
+        utils.dnsquery2log(r)
 
     def test_refused_response_no_question(self):
         """
@@ -267,4 +267,34 @@ class TestDNSMsg2Log(unittest.TestCase):
         r = dns.message.make_response(self._q, recursion_available=True)
         r.set_rcode(dns.rcode.REFUSED)
         r.question = []
-        utils.dnsmsg2log(r)
+        utils.dnsquery2log(r)
+
+
+class TestDNSAns2Log(unittest.TestCase):
+
+    def setUp(self):
+        self._qname = 'example.com'
+        self._qtype = 'A'
+        self._q = dns.message.make_query(self._qname, self._qtype)
+
+    def test_valid_query(self):
+        """
+        test that no exception is thrown with a legitimate query.
+        """
+        utils.dnsans2log(self._q)
+
+    def test_valid_response(self):
+        """
+        test that no exception is thrown with a legitimate response.
+        """
+        r = dns.message.make_response(self._q, recursion_available=True)
+        utils.dnsans2log(r)
+
+    def test_refused_response_no_question(self):
+        """
+        test that no exception is thrown with a legitimate response.
+        """
+        r = dns.message.make_response(self._q, recursion_available=True)
+        r.set_rcode(dns.rcode.REFUSED)
+        r.question = []
+        utils.dnsans2log(r)
