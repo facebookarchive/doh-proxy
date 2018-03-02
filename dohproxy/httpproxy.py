@@ -11,6 +11,7 @@ import aiohttp_remotes
 import asyncio
 import dns.message
 import dns.rcode
+import time
 
 from argparse import ArgumentParser, Namespace
 
@@ -59,10 +60,12 @@ async def doh1handler(request):
         return aiohttp.web.Response(status=400, body=e.body())
 
     dnsq = dns.message.from_wire(body)
+
+    clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info(
-        '[HTTPS] Received: {} Peer {}'.format(
-            utils.dnsmsg2log(dnsq),
-            request.transport.get_extra_info('peername'),
+        '[HTTPS] {} {}'.format(
+            clientip,
+            utils.dnsquery2log(dnsq)
         )
     )
     return await request.app.resolve(request, dnsq)
@@ -75,13 +78,13 @@ class DOHApplication(aiohttp.web.Application):
         self.upstream_port = upstream_port
 
     async def resolve(self, request, dnsq):
+        self.time_stamp = time.time()
         qid = dnsq.id
         queue = asyncio.Queue(maxsize=1)
         await self.loop.create_datagram_endpoint(
                 lambda: DNSClientProtocol(dnsq, queue, logger=self.logger),
                 remote_addr=(self.upstream_resolver, self.upstream_port))
 
-        self.logger.debug("Waiting for DNS response")
         try:
             dnsr = await asyncio.wait_for(queue.get(), 10)
             dnsr.id = qid
@@ -101,11 +104,14 @@ class DOHApplication(aiohttp.web.Application):
             ttl = min(r.ttl for r in dnsr.answer)
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
+        clientip = request.transport.get_extra_info('peername')[0]
+        interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '[HTTPS] Send: {} Peer {} Client {}'.format(
-                utils.dnsmsg2log(dnsr),
-                request.transport.get_extra_info('peername'),
-                request.remote
+            '[HTTPS] {} (Original IP: {}) {} {}ms'.format(
+                clientip,
+                request.remote,
+                utils.dnsans2log(dnsr),
+                interval
             )
         )
         body = dnsr.to_wire()

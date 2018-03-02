@@ -169,6 +169,8 @@ $ python3 setup.py test
 To run the linter:
 ```shell
 $ python3 setup.py flake8
+# Also run flake8 on the testing files
+$ flake8 test
 ```
 
 From within the root of the repository, you can test the proxy, stub and client respectively

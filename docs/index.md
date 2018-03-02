@@ -1,7 +1,6 @@
 ---
 layout: default
 ---
-
 # DNS Over HTTPS Proxy
 
 [![Build Status](https://travis-ci.org/facebookexperimental/doh-proxy.svg?branch=master)](https://travis-ci.org/facebookexperimental/doh-proxy)
@@ -72,6 +71,8 @@ $ sudo doh-httpproxy \
     --listen-address ::1
 ```
 
+`doh-httpproxy` now also supports TLS, that you can enable passing the 
+args `--certfile` and `--keyfile` (just like `doh-proxy`)
 
 ### doh-stub
 
@@ -171,6 +172,8 @@ $ python3 setup.py test
 To run the linter:
 ```shell
 $ python3 setup.py flake8
+# Also run flake8 on the testing files
+$ flake8 test
 ```
 
 From within the root of the repository, you can test the proxy, stub and client respectively
@@ -210,6 +213,8 @@ Check the [tutorial page](tutorials.md)
 
 ### Added
 - support listening from multiple IPs for proxy services.
+- Added support for TLS in `doh-httpproxy` @lucasvasconcelos
+- Pass optional `cafile` to `doh-stub` to be able to connect to service using custom CA @fim
 
 ## [0.0.6] - 2018-02-20
 
