@@ -40,7 +40,7 @@ def msg2flags(msg: dns.message.Message) -> str:
     return '/'.join(dns.flags.to_text(msg.flags).split(' '))
 
 
-def sum_items(section: list) -> int:
+def sum_items(section: List[dns.rrset.RRset]) -> int:
     """ Helper function to return items in a section of dns answer
     """
     return sum(len(x) for x in section)
