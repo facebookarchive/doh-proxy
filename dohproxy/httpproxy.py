@@ -34,7 +34,7 @@ def parse_args(args=None):
             If you do not want to add a trusted trusted reverse proxy, \
             just specify this flag with empty parameters.',
     )
-    return parser.parse_args(args=args)
+    return parser, parser.parse_args(args=args)
 
 
 async def doh1handler(request):
@@ -128,15 +128,14 @@ class DOHApplication(aiohttp.web.Application):
         )
 
 
-def setup_ssl(options: Namespace):
+def setup_ssl(parser: ArgumentParser, options: Namespace):
     """ Setup the SSL Context """
     ssl_context = None
 
     # If SSL is wanted, both certfile and keyfile must
     # be passed
     if bool(options.certfile) ^ bool(options.keyfile):
-        ArgumentParser.error('To use SSL both --certfile and --keyfile must be'
-                             'passed')
+        parser.error('To use SSL both --certfile and --keyfile must be passed')
     elif options.certfile and options.keyfile:
         ssl_context = utils.create_ssl_context(options)
 
@@ -165,10 +164,10 @@ def get_app(args):
 
 
 def main():
-    args = parse_args()
+    parser, args = parse_args()
     app = get_app(args)
 
-    ssl_context = setup_ssl(args)
+    ssl_context = setup_ssl(parser, args)
     aiohttp.web.run_app(
         app, host=args.listen_address, port=args.port, ssl_context=ssl_context)
 

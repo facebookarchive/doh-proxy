@@ -43,7 +43,8 @@ class HTTPProxyTestCase(AioHTTPTestCase):
         """
         Override the get_app method to return your application.
         """
-        return httpproxy.get_app(httpproxy.parse_args(self.get_args()))
+        parser, args = httpproxy.parse_args(self.get_args())
+        return httpproxy.get_app(args)
 
 
 class HTTPProxyGETTestCase(HTTPProxyTestCase):
@@ -248,7 +249,8 @@ class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
         """
         args = self.get_args()
         args.extend(['--trusted', ['::1', '127.0.0.1']])
-        httpproxy.get_app(httpproxy.parse_args(args))
+        parser, args = httpproxy.parse_args(self.get_args())
+        httpproxy.get_app(args)
 
         not mock_xforwarded_relaxed.called
         mock_xforwarded_strict.called
@@ -266,7 +268,8 @@ class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
         """
         args = self.get_args()
         args.extend(['--trusted'])
-        httpproxy.get_app(httpproxy.parse_args(args))
+        parser, args = httpproxy.parse_args(self.get_args())
+        httpproxy.get_app(args)
 
         mock_xforwarded_relaxed.called
         not mock_xforwarded_strict.called
