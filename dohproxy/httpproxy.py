@@ -14,6 +14,7 @@ import dns.rcode
 import time
 
 from argparse import ArgumentParser, Namespace
+from multidict import CIMultiDict
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
@@ -98,7 +99,7 @@ class DOHApplication(aiohttp.web.Application):
             return self.on_answer(request, dnsq=dnsq)
 
     def on_answer(self, request, dnsr=None, dnsq=None):
-        headers = {}
+        headers = CIMultiDict()
 
         if dnsr is None:
             dnsr = dns.message.make_response(dnsq)
@@ -123,6 +124,7 @@ class DOHApplication(aiohttp.web.Application):
             status=200,
             body=body,
             content_type=constants.DOH_MEDIA_TYPE,
+            headers=headers,
         )
 
 
