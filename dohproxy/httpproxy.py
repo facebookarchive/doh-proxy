@@ -40,15 +40,18 @@ def parse_args(args=None):
 async def doh1handler(request):
     path, params = utils.extract_path_params(request.rel_url.path_qs)
 
-    if request.method == 'GET':
+    if request.method in ['GET', 'HEAD']:
         try:
             ct, body = utils.extract_ct_body(params)
         except DOHParamsException as e:
             return aiohttp.web.Response(status=400, body=e.body())
-    else:
+    elif request.method == 'POST':
         body = await request.content.read()
         ct = request.headers.get('content-type')
-
+    else:
+        return aiohttp.web.Response(
+            status=501, body=b'Not Implemented'
+        )
     if ct != constants.DOH_MEDIA_TYPE:
         return aiohttp.web.Response(
             status=415, body=b'Unsupported content type'
@@ -118,7 +121,10 @@ class DOHApplication(aiohttp.web.Application):
                 interval
             )
         )
-        body = dnsr.to_wire()
+        if request.method == 'HEAD':
+            body = b''
+        else:
+            body = dnsr.to_wire()
 
         return aiohttp.web.Response(
             status=200,
