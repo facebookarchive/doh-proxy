@@ -83,7 +83,9 @@ class DOHApplication(aiohttp.web.Application):
         qid = dnsq.id
         queue = asyncio.Queue(maxsize=1)
         await self.loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(dnsq, queue, logger=self.logger),
+                lambda: DNSClientProtocol(
+                    dnsq, queue, request.remote, logger=self.logger
+                ),
                 remote_addr=(self.upstream_resolver, self.upstream_port))
 
         try:
