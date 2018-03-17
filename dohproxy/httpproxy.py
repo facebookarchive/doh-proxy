@@ -14,6 +14,7 @@ import dns.rcode
 import time
 
 from argparse import ArgumentParser, Namespace
+from multidict import CIMultiDict
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
@@ -83,7 +84,9 @@ class DOHApplication(aiohttp.web.Application):
         qid = dnsq.id
         queue = asyncio.Queue(maxsize=1)
         await self.loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(dnsq, queue, logger=self.logger),
+                lambda: DNSClientProtocol(
+                    dnsq, queue, request.remote, logger=self.logger
+                ),
                 remote_addr=(self.upstream_resolver, self.upstream_port))
 
         try:
@@ -96,7 +99,7 @@ class DOHApplication(aiohttp.web.Application):
             return self.on_answer(request, dnsq=dnsq)
 
     def on_answer(self, request, dnsr=None, dnsq=None):
-        headers = {}
+        headers = CIMultiDict()
 
         if dnsr is None:
             dnsr = dns.message.make_response(dnsq)
@@ -121,6 +124,7 @@ class DOHApplication(aiohttp.web.Application):
             status=200,
             body=body,
             content_type=constants.DOH_MEDIA_TYPE,
+            headers=headers,
         )
 
 
