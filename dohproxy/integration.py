@@ -17,6 +17,7 @@ import unittest
 
 from dohproxy import client_protocol, constants, utils
 from functools import wraps
+from pygments import highlight
 from unittest.mock import patch
 
 
@@ -53,6 +54,43 @@ def modify_headers(headers, key, value):
         else:
             new_headers.append((k, v))
     return new_headers
+
+
+class DOHTextTestResult(colour_runner.runner.ColourTextTestResult):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.colours['fail'] = self._terminal.bold_yellow
+
+    def formatErr(self, err):
+        return '{}\n{}'.format(err[1].__class__.__name__, err[1].args[0])
+
+    def addSuccess(self, test):
+        unittest.result.TestResult.addSuccess(self, test)
+        self.printResult('.', 'OK', 'success')
+
+    def addError(self, test, err):
+        self.failures.error((test, self.formatErr(err)))
+        self.printResult('F', 'ERROR', 'error')
+
+    def addFailure(self, test, err):
+        self.failures.append((test, self.formatErr(err)))
+        self.printResult('F', 'WARNING', 'fail')
+
+    def printErrorList(self, flavour, errors):
+        colour = self.colours[flavour.lower()]
+        for test, err in errors:
+            self.stream.writeln(self.separator1)
+            title = '%s: %s' % (flavour, self.getLongDescription(test))
+            self.stream.writeln(colour(title))
+            print(type(err))
+            self.stream.writeln(self.separator2)
+            self.stream.writeln(highlight(err, self.lexer, self.formatter))
+
+
+class DOHTestRunner(unittest.runner.TextTestRunner):
+    """ A test runner that uses color in its output and customize signal """
+    resultclass = DOHTextTestResult
 
 
 class Client(client_protocol.StubServerProtocol):
@@ -263,7 +301,7 @@ def main():
 
     unittest.main(
         argv=[sys.argv[0]] + args.args,
-        testRunner=colour_runner.runner.ColourTextTestRunner,
+        testRunner=DOHTestRunner,
         verbosity=2)
 
 
