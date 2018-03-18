@@ -28,7 +28,6 @@ from h2.connection import H2Connection
 from h2.events import (
     ConnectionTerminated, DataReceived, RequestReceived, StreamEnded
 )
-from h2.errors import ErrorCodes
 from h2.exceptions import ProtocolError
 
 
@@ -88,9 +87,10 @@ class H2Protocol(asyncio.Protocol):
     def request_received(self, headers: List[Tuple[str, str]], stream_id: int):
         _headers = collections.OrderedDict(headers)
         method = _headers[':method']
+
         # We only support GET and POST.
-        if method not in ('GET', 'POST'):
-            self.return_405(stream_id)
+        if method not in ['GET', 'POST', 'HEAD']:
+            self.return_501(stream_id)
             return
 
         # Store off the request data.
@@ -117,15 +117,18 @@ class H2Protocol(asyncio.Protocol):
             self.return_404(stream_id)
             return
 
-        if method == 'GET':
+        if method in ['GET', 'HEAD']:
             try:
                 ct, body = utils.extract_ct_body(params)
             except DOHParamsException as e:
                 self.return_400(stream_id, body=e.body())
                 return
-        else:
+        elif method == 'POST':
             body = request_data.data.getvalue()
             ct = headers.get('content-type')
+        else:
+            self.return_501(stream_id)
+            return
 
         if ct != constants.DOH_MEDIA_TYPE:
             self.return_415(stream_id)
@@ -149,15 +152,25 @@ class H2Protocol(asyncio.Protocol):
         asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
     def on_answer(self, stream_id, dnsr=None, dnsq=None):
-        headers = {
-            'Content-Type': constants.DOH_MEDIA_TYPE,
-        }
+        try:
+            request_data = self.stream_data[stream_id]
+        except KeyError:
+            # Just return, we probably 405'd this already
+            return
+
+        response_headers = [
+            (':status', '200'),
+            ('content-type', constants.DOH_MEDIA_TYPE),
+            ('server', 'asyncio-h2'),
+        ]
         if dnsr is None:
             dnsr = dns.message.make_response(dnsq)
             dnsr.set_rcode(dns.rcode.SERVFAIL)
         elif len(dnsr.answer):
             ttl = min(r.ttl for r in dnsr.answer)
-            headers['cache-control'] = 'max-age={}'.format(ttl)
+            response_headers.append(
+                ('cache-control', 'max-age={}'.format(ttl))
+            )
 
         clientip = self.transport.get_extra_info('peername')[0]
         interval = int((time.time() - self.time_stamp) * 1000)
@@ -168,14 +181,12 @@ class H2Protocol(asyncio.Protocol):
                 interval
             )
         )
-        body = dnsr.to_wire()
+        if request_data.headers[':method'] == 'HEAD':
+            body = b''
+        else:
+            body = dnsr.to_wire()
+        response_headers.append(('content-length', str(len(body))))
 
-        response_headers = (
-            (':status', '200'),
-            ('content-type', constants.DOH_MEDIA_TYPE),
-            ('content-length', str(len(body))),
-            ('server', 'asyncio-h2'),
-        )
         self.conn.send_headers(stream_id, response_headers)
         self.conn.send_data(stream_id, body, end_stream=True)
         self.transport.write(self.conn.data_to_send())
@@ -240,6 +251,12 @@ class H2Protocol(asyncio.Protocol):
         """
         self.return_XXX(stream_id, 415, body=b'Unsupported content type')
 
+    def return_501(self, stream_id: int):
+        """
+        We don't support the given method.
+        """
+        self.return_XXX(stream_id, 501, body=b'Not Implemented')
+
     def receive_data(self, data: bytes, stream_id: int):
         """
         We've received some data on a stream. If that stream is one we're
@@ -248,8 +265,10 @@ class H2Protocol(asyncio.Protocol):
         try:
             stream_data = self.stream_data[stream_id]
         except KeyError:
-            self.conn.reset_stream(
-                stream_id, error_code=ErrorCodes.PROTOCOL_ERROR
+            # Unknown stream, log and ignore (the stream may already be ended)
+            clientip = self.transport.get_extra_info('peername')[0]
+            self.logger.info(
+                '[HTTPS] %s Unknown stream %d', clientip, stream_id
             )
         else:
             stream_data.data.write(data)

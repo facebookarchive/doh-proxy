@@ -58,6 +58,31 @@ class StubServerProtocol:
     def on_answer(self, addr, dnsr):
         self.transport.sendto(dnsr, addr)
 
+    def on_message_received(self, stream_id, msg):
+        """
+        Takes a wired format message returned from a DOH server and convert it
+        to a python dns message.
+        """
+        return dns.message.from_wire(msg)
+
+    async def on_start_request(self, client, headers, end_stream):
+        return await client.start_request(headers, end_stream=end_stream)
+
+    async def on_send_data(self, client, stream_id, body):
+        return await client.send_data(stream_id, body, end_stream=True)
+
+    def on_recv_response(self, stream_id, headers):
+        self.logger.debug('Response headers: {}'.format(headers))
+
+    def _make_get_path(self, content):
+        params = utils.build_query_params(content)
+        self.logger.debug('Query parameters: {}'.format(params))
+        params_str = urllib.parse.urlencode(params)
+        if self.args.debug:
+            url = utils.make_url(self.args.domain, self.args.uri)
+            self.logger.debug('Sending {}?{}'.format(url, params_str))
+        return self.args.uri + '?' + params_str
+
     async def make_request(self, addr, dnsq):
 
         # FIXME: maybe aioh2 should allow registering to connection_lost event
@@ -82,13 +107,7 @@ class StubServerProtocol:
             headers.append(('content-type', constants.DOH_MEDIA_TYPE))
             body = dnsq.to_wire()
         else:
-            params = utils.build_query_params(dnsq.to_wire())
-            self.logger.debug('Query parameters: {}'.format(params))
-            params_str = urllib.parse.urlencode(params)
-            if self.args.debug:
-                url = utils.make_url(self.args.domain, self.args.uri)
-                self.logger.debug('Sending {}?{}'.format(url, params_str))
-            path = self.args.uri + '?' + params_str
+            path = self._make_get_path(dnsq.to_wire())
 
         headers.insert(0, (':path', path))
         headers.extend([
@@ -97,15 +116,11 @@ class StubServerProtocol:
         # Start request with headers
         # FIXME: Find a better way to close old streams. See GH#11
         try:
-            stream_id = await client.start_request(
-                headers,
-                end_stream=not body)
+            stream_id = await self.on_start_request(client, headers, not body)
         except priority.priority.TooManyStreamsError:
             await self.setup_client()
             client = self.client
-            stream_id = await client.start_request(
-                headers,
-                end_stream=not body)
+            stream_id = await self.on_start_request(client, headers, not body)
         self.logger.debug(
             'Stream ID: {} / Total streams: {}'.format(
                 stream_id, len(client._streams)
@@ -113,15 +128,17 @@ class StubServerProtocol:
         )
         # Send my name "world" as whole request body
         if body:
-            await client.send_data(stream_id, body, end_stream=True)
+            await self.on_send_data(client, stream_id, body)
 
         # Receive response headers
         headers = await client.recv_response(stream_id)
-        self.logger.debug('Response headers: {}'.format(headers))
+        self.on_recv_response(stream_id, headers)
+        # FIXME handled error with servfail
 
         # Read all response body
         resp = await client.read_stream(stream_id, -1)
-        dnsr = dns.message.from_wire(resp)
+        dnsr = self.on_message_received(stream_id, resp)
+
         dnsr.id = qid
         self.on_answer(addr, dnsr.to_wire())
 

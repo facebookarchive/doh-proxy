@@ -173,6 +173,14 @@ and replace them with:
     listen 443 ssl http2; # managed by Certbot
 ```
 
+We will configure `nginx` to only let `HEAD`, `GET` and `POST` requests to go
+through:
+
+```
+if ( $request_method !~ ^(GET|POST|HEAD)$ ) {
+        return 501;
+}
+```
 Now, we will configure anything that gets to `/dns-query` to be forwarded to our backends:
 
 Find the block:
