@@ -16,6 +16,7 @@ import time
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
     DNSClientProtocol,
+    DNSClientProtocolTCP,
     DOHDNSException,
     DOHParamsException,
 )
@@ -194,20 +195,39 @@ class H2Protocol(asyncio.Protocol):
     async def resolve(self, dnsq, stream_id):
         qid = dnsq.id
         loop = asyncio.get_event_loop()
-        queue = asyncio.Queue(maxsize=1)
         clientip = self.transport.get_extra_info('peername')[0]
-        await loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(dnsq, queue, clientip),
-                remote_addr=(self.upstream_resolver, self.upstream_port))
 
+        fut = asyncio.Future()
+        await loop.create_datagram_endpoint(
+            lambda: DNSClientProtocol(dnsq, fut, clientip),
+            remote_addr=(self.upstream_resolver, self.upstream_port))
+
+        retry_query = False
         try:
-            dnsr = await asyncio.wait_for(queue.get(), 10)
+            await asyncio.wait_for(fut, 10)
+            dnsr = fut.result()
             dnsr.id = qid
-            queue.task_done()
-            self.on_answer(stream_id, dnsr=dnsr)
+            if dnsr.flags & dns.flags.TC:  # TC bit set
+                retry_query = True
+            else:
+                self.on_answer(stream_id, dnsr=dnsr)
         except asyncio.TimeoutError:
-            self.logger.debug("Request timed out")
-            self.on_answer(stream_id, dnsq=dnsq)
+            self.logger.debug("Request timed out, retry TCP")
+            retry_query = True  # udp time out retry tcp
+
+        if retry_query:
+            fut = asyncio.Future()
+            await loop.create_connection(
+                lambda: DNSClientProtocolTCP(dnsq, fut, clientip),
+                self.upstream_resolver, self.upstream_port)
+            try:
+                await asyncio.wait_for(fut, 10)
+                dnsr = fut.result()
+                dnsr.id = qid
+                self.on_answer(stream_id, dnsr=dnsr)
+            except asyncio.TimeoutError:
+                self.logger.debug("Request timed out, return query")
+                self.on_answer(stream_id, dnsq=dnsq)
 
     def return_XXX(self, stream_id: int, status: int, body: bytes = b''):
         """
