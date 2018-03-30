@@ -15,8 +15,7 @@ import time
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
-    DNSClientProtocol,
-    DNSClientProtocolTCP,
+    DNSClient,
     DOHDNSException,
     DOHParamsException,
 )
@@ -193,41 +192,14 @@ class H2Protocol(asyncio.Protocol):
         self.transport.write(self.conn.data_to_send())
 
     async def resolve(self, dnsq, stream_id):
-        qid = dnsq.id
-        loop = asyncio.get_event_loop()
         clientip = self.transport.get_extra_info('peername')[0]
+        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port)
+        dnsr = await dnsclient.query(dnsq, clientip)
 
-        fut = asyncio.Future()
-        await loop.create_datagram_endpoint(
-            lambda: DNSClientProtocol(dnsq, fut, clientip),
-            remote_addr=(self.upstream_resolver, self.upstream_port))
-
-        retry_query = False
-        try:
-            await asyncio.wait_for(fut, 10)
-            dnsr = fut.result()
-            dnsr.id = qid
-            if dnsr.flags & dns.flags.TC:  # TC bit set
-                retry_query = True
-            else:
-                self.on_answer(stream_id, dnsr=dnsr)
-        except asyncio.TimeoutError:
-            self.logger.debug("Request timed out, retry TCP")
-            retry_query = True  # udp time out retry tcp
-
-        if retry_query:
-            fut = asyncio.Future()
-            await loop.create_connection(
-                lambda: DNSClientProtocolTCP(dnsq, fut, clientip),
-                self.upstream_resolver, self.upstream_port)
-            try:
-                await asyncio.wait_for(fut, 10)
-                dnsr = fut.result()
-                dnsr.id = qid
-                self.on_answer(stream_id, dnsr=dnsr)
-            except asyncio.TimeoutError:
-                self.logger.debug("Request timed out, return query")
-                self.on_answer(stream_id, dnsq=dnsq)
+        if dnsr is None:
+            self.on_answer(stream_id, dnsq=dnsq)
+        else:
+            self.on_answer(stream_id, dnsr=dnsr)
 
     def return_XXX(self, stream_id: int, status: int, body: bytes = b''):
         """
