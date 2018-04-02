@@ -39,9 +39,9 @@ class DNSClient():
         self.upstream_port = upstream_port
 
     async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
-        dnsr = await self.query_udp(dnsq, clientip, timeout)
+        dnsr = await self.query_udp(dnsq, clientip, timeout=timeout)
         if dnsr is None or (dnsr.flags & dns.flags.TC):
-            dnsr = await self.query_tcp(dnsq, clientip, timeout)
+            dnsr = await self.query_tcp(dnsq, clientip, timeout=timeout)
         return dnsr
 
     async def query_udp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
@@ -68,8 +68,7 @@ class DNSClient():
         except asyncio.TimeoutError:
             self.logger.debug("Request timed out")
             dnsr = None
-        finally:
-            return dnsr
+        return dnsr
 
 
 class DNSClientProtocol(asyncio.Protocol):
@@ -135,6 +134,12 @@ class DNSClientProtocolUDP(DNSClientProtocol):
 
 class DNSClientProtocolTCP(DNSClientProtocol):
 
+    def __init__(self, dnsq, fut, clientip, logger=None):
+        super().__init__(dnsq, fut, clientip, logger=logger)
+        self.msglen = -1
+        self.buffer = bytes()  # buffer of current dnsr
+        self.remained = bytes()  # data remained last call
+
     def connection_made(self, transport):
         self.send_helper(transport)
         msg = self.dnsq.to_wire()
@@ -142,5 +147,19 @@ class DNSClientProtocolTCP(DNSClientProtocol):
         self.transport.write(tcpmsg)
 
     def data_received(self, data):
-        dnsr = dns.message.from_wire(data[2:])
-        self.receive_helper(dnsr)
+        data = self.remained + data
+        self.remained = bytes()
+        if self.msglen < 0:
+            self.msglen = struct.unpack("!H", data[0:2])[0]
+            data = data[2:]
+
+        if self.msglen > len(data):
+            self.buffer = self.buffer + data
+            self.msglen = self.msglen - len(data)
+        else:
+            self.buffer = self.buffer + data[0:self.msglen]
+            dnsr = dns.message.from_wire(self.buffer)
+            self.receive_helper(dnsr)
+            self.buffer = bytes()
+            self.remained = data[self.msglen:]
+            self.msglen = -1
