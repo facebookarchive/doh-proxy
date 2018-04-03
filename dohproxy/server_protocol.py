@@ -136,9 +136,9 @@ class DNSClientProtocolTCP(DNSClientProtocol):
 
     def __init__(self, dnsq, fut, clientip, logger=None):
         super().__init__(dnsq, fut, clientip, logger=logger)
-        self.msglen = -1
-        self.buffer = bytes()  # buffer of current dnsr
-        self.remained = bytes()  # data remained last call
+        self.valid_len = False
+        self.msglen = 0
+        self.buffer = bytes()
 
     def connection_made(self, transport):
         self.send_helper(transport)
@@ -147,19 +147,21 @@ class DNSClientProtocolTCP(DNSClientProtocol):
         self.transport.write(tcpmsg)
 
     def data_received(self, data):
-        data = self.remained + data
-        self.remained = bytes()
-        if self.msglen < 0:
-            self.msglen = struct.unpack("!H", data[0:2])[0]
-            data = data[2:]
-
-        if self.msglen > len(data):
-            self.buffer = self.buffer + data
-            self.msglen = self.msglen - len(data)
-        else:
-            self.buffer = self.buffer + data[0:self.msglen]
-            dnsr = dns.message.from_wire(self.buffer)
+        self.buffer = self.buffer + data
+        if not self.valid_len:
+            if len(self.buffer) >= 2:
+                self.msglen = struct.unpack("!H", self.buffer[0:2])[0]
+                self.valid_len = True
+        while self.valid_len and len(self.buffer) >= self.msglen + 2:
+            dnsr = dns.message.from_wire(self.buffer[2:self.msglen + 2])
             self.receive_helper(dnsr)
-            self.buffer = bytes()
-            self.remained = data[self.msglen:]
-            self.msglen = -1
+            self.buffer = self.buffer[self.msglen + 2:]
+            if len(self.buffer) >= 2:
+                self.msglen = struct.unpack("!H", self.buffer[0:2])[0]
+                self.valid_len = True
+            else:
+                self.valid_len = False
+
+    def eof_received(self):
+        if len(self.buffer) > 0:
+            self.logger.debug('Discard incomplete message')
