@@ -118,7 +118,6 @@ class DNSClientProtocol(asyncio.Protocol):
             )
         )
         self.fut.set_result(dnsr)
-        self.transport.close()
 
 
 class DNSClientProtocolUDP(DNSClientProtocol):
@@ -130,6 +129,7 @@ class DNSClientProtocolUDP(DNSClientProtocol):
     def datagram_received(self, data, addr):
         dnsr = dns.message.from_wire(data)
         self.receive_helper(dnsr)
+        self.transport.close()
 
 
 class DNSClientProtocolTCP(DNSClientProtocol):
@@ -165,3 +165,4 @@ class DNSClientProtocolTCP(DNSClientProtocol):
     def eof_received(self):
         if len(self.buffer) > 0:
             self.logger.debug('Discard incomplete message')
+        self.transport.close()
