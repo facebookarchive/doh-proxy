@@ -33,10 +33,12 @@ class DNSClient():
 
     DEFAULT_TIMEOUT = 10
 
-    def __init__(self, upstream_resolver, upstream_port):
+    def __init__(self, upstream_resolver, upstream_port, logger=None):
         self.loop = asyncio.get_event_loop()
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
+        if logger is None:
+            self.logger = utils.configure_logger('DNSClient', 'DEBUG')
 
     async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         dnsr = await self.query_udp(dnsq, clientip, timeout=timeout)
@@ -82,20 +84,23 @@ class DNSClientProtocol(asyncio.Protocol):
         if logger is None:
             self.logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
 
-    def error_received(self, exc):
-        print('Error received:', exc)
-
     def connection_lost(self, exc):
         pass
 
     def connection_made(self, transport):
-        raise NotImplementedError("This is the base class")
+        raise NotImplementedError()
 
     def data_received(self, data):
-        raise NotImplementedError("This is the base class")
+        raise NotImplementedError()
 
     def datagram_received(self, data, addr):
-        raise NotImplementedError("This is the base class")
+        raise NotImplementedError()
+
+    def error_received(self, exc):
+        raise NotImplementedError()
+
+    def eof_received(self):
+        raise NotImplementedError()
 
     def send_helper(self, transport):
         self.transport = transport
@@ -131,36 +136,34 @@ class DNSClientProtocolUDP(DNSClientProtocol):
         self.receive_helper(dnsr)
         self.transport.close()
 
+    def error_received(self, exc):
+        self.logger.debug('Error received')
+
 
 class DNSClientProtocolTCP(DNSClientProtocol):
 
     def __init__(self, dnsq, fut, clientip, logger=None):
         super().__init__(dnsq, fut, clientip, logger=logger)
-        self.valid_len = False
-        self.msglen = 0
         self.buffer = bytes()
 
     def connection_made(self, transport):
         self.send_helper(transport)
         msg = self.dnsq.to_wire()
-        tcpmsg = struct.pack("!H", len(msg)) + msg
+        tcpmsg = struct.pack('!H', len(msg)) + msg
         self.transport.write(tcpmsg)
 
     def data_received(self, data):
         self.buffer = self.buffer + data
-        if not self.valid_len:
-            if len(self.buffer) >= 2:
-                self.msglen = struct.unpack("!H", self.buffer[0:2])[0]
-                self.valid_len = True
-        while self.valid_len and len(self.buffer) >= self.msglen + 2:
-            dnsr = dns.message.from_wire(self.buffer[2:self.msglen + 2])
+        if len(self.buffer) < 2:
+            return
+        msglen = struct.unpack('!H', self.buffer[0:2])[0]
+        while msglen + 2 <= len(self.buffer):
+            dnsr = dns.message.from_wire(self.buffer[2:msglen + 2])
             self.receive_helper(dnsr)
-            self.buffer = self.buffer[self.msglen + 2:]
-            if len(self.buffer) >= 2:
-                self.msglen = struct.unpack("!H", self.buffer[0:2])[0]
-                self.valid_len = True
-            else:
-                self.valid_len = False
+            self.buffer = self.buffer[msglen + 2:]
+            if len(self.buffer) < 2:
+                return
+            msglen = struct.unpack('!H', self.buffer[0:2])[0]
 
     def eof_received(self):
         if len(self.buffer) > 0:

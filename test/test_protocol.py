@@ -27,76 +27,53 @@ class TCPTestCase(unittest.TestCase):
         self.dnsr = dns.message.make_response(self.dnsq)
         self.response = self.dnsr.to_wire()
 
-    def r_receive_helper(self, dnsr):
-        """
-        fut attribute as a list to store the answer from receive helper
-        """
-        self.fut.append(dnsr)
-
-    def r_eof_received(self):
-        """
-        here we raise a general expection when we discard broken message
-        """
-        if len(self.buffer) > 0:
-            raise Exception
-
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_single_valid(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_single_valid(self, m_rcv):
         """
         only one unbroken message is sent
         """
         data = struct.pack("!H", len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data)
-        self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [self.dnsr])
+        m_rcv.assert_called_with(self.dnsr)
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_two_valid(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_two_valid(self, m_rcv):
         """
         two unbroken messages
         """
         data = struct.pack("!H", len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data + data)
-        self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [self.dnsr, self.dnsr])
+        m_rcv.assert_called_with(self.dnsr)
+        self.assertEqual(m_rcv.call_count, 2)
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_partial_valid(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_partial_valid(self, m_rcv):
         """
         slice the messages but with entire len bytes
         """
         data = struct.pack("!H", len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data[0:5])
+        m_rcv.assert_not_called()
         self.client_tcp.data_received(data[5:])
-        self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [self.dnsr])
+        m_rcv.assert_called_with(self.dnsr)
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_len_byte(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_len_byte(self, m_rcv):
         """
         the len bytes is divided into two responses
         """
         data = struct.pack("!H", len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data[0:1])
+        m_rcv.assert_not_called()
         self.client_tcp.data_received(data[1:])
-        self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [self.dnsr])
+        m_rcv.assert_called_with(self.dnsr)
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_complex(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_complex(self, m_rcv):
         """
         more complex case with 3 messages
         """
@@ -108,37 +85,28 @@ class TCPTestCase(unittest.TestCase):
         self.client_tcp.data_received(data[length - 3:length + 1])
         self.client_tcp.data_received(data[length + 1:2 * length])
         self.client_tcp.data_received(data[2 * length:])
-        self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [self.dnsr, self.dnsr, self.dnsr])
+        m_rcv.assert_called_with(self.dnsr)
+        self.assertEqual(m_rcv.call_count, 3)
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_single_long(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_single_long(self, m_rcv):
         """
-        the message is acutally longer than expected length
+        the message is actually longer than expected length
         """
         data = struct.pack("!H", len(self.response) - 3) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         with self.assertRaises(dns.exception.FormError):
             self.client_tcp.data_received(data)
-            self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [])
 
-    @patch.object(DNSClientProtocolTCP, 'receive_helper', new=r_receive_helper)
-    @patch.object(DNSClientProtocolTCP, 'eof_received', new=r_eof_received)
-    def test_single_short(self):
+    @patch.object(DNSClientProtocolTCP, 'receive_helper')
+    def test_single_short(self, m_rcv):
         """
         the message is actually shorter than expected length
         """
         data = struct.pack("!H", len(self.response) + 3) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
-        with self.assertRaises(Exception):
-            self.client_tcp.data_received(data)
-            self.client_tcp.eof_received()
-        ans = self.client_tcp.fut
-        self.assertEqual(ans, [])
+        self.client_tcp.data_received(data)
+        m_rcv.assert_not_called()
 
 
 if __name__ == '__main__':
