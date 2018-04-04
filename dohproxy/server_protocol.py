@@ -50,7 +50,8 @@ class DNSClient():
         qid = dnsq.id
         fut = asyncio.Future()
         await self.loop.create_datagram_endpoint(
-            lambda: DNSClientProtocolUDP(dnsq, fut, clientip),
+            lambda: DNSClientProtocolUDP(
+                dnsq, fut, clientip, logger=self.logger),
             remote_addr=(self.upstream_resolver, self.upstream_port))
         return await self._try_query(fut, qid, timeout)
 
@@ -58,7 +59,8 @@ class DNSClient():
         qid = dnsq.id
         fut = asyncio.Future()
         await self.loop.create_connection(
-            lambda: DNSClientProtocolTCP(dnsq, fut, clientip),
+            lambda: DNSClientProtocolTCP(
+                dnsq, fut, clientip, logger=self.logger),
             self.upstream_resolver, self.upstream_port)
         return await self._try_query(fut, qid, timeout)
 
