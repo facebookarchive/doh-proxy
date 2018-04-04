@@ -15,7 +15,7 @@ import time
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
-    DNSClientProtocol,
+    DNSClient,
     DOHDNSException,
     DOHParamsException,
 )
@@ -192,22 +192,14 @@ class H2Protocol(asyncio.Protocol):
         self.transport.write(self.conn.data_to_send())
 
     async def resolve(self, dnsq, stream_id):
-        qid = dnsq.id
-        loop = asyncio.get_event_loop()
-        queue = asyncio.Queue(maxsize=1)
         clientip = self.transport.get_extra_info('peername')[0]
-        await loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(dnsq, queue, clientip),
-                remote_addr=(self.upstream_resolver, self.upstream_port))
+        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port)
+        dnsr = await dnsclient.query(dnsq, clientip)
 
-        try:
-            dnsr = await asyncio.wait_for(queue.get(), 10)
-            dnsr.id = qid
-            queue.task_done()
-            self.on_answer(stream_id, dnsr=dnsr)
-        except asyncio.TimeoutError:
-            self.logger.debug("Request timed out")
+        if dnsr is None:
             self.on_answer(stream_id, dnsq=dnsq)
+        else:
+            self.on_answer(stream_id, dnsr=dnsr)
 
     def return_XXX(self, stream_id: int, status: int, body: bytes = b''):
         """
