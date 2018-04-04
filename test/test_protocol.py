@@ -18,9 +18,6 @@ from dohproxy.server_protocol import DNSClientProtocolTCP
 class TCPTestCase(unittest.TestCase):
 
     def setUp(self):
-        """
-        prepare the dns response
-        """
         self.dnsq = dns.message.make_query(
             'www.example.com',
             dns.rdatatype.ANY)
@@ -29,20 +26,14 @@ class TCPTestCase(unittest.TestCase):
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_single_valid(self, m_rcv):
-        """
-        only one unbroken message is sent
-        """
-        data = struct.pack("!H", len(self.response)) + self.response
+        data = struct.pack('!H', len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data)
         m_rcv.assert_called_with(self.dnsr)
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_two_valid(self, m_rcv):
-        """
-        two unbroken messages
-        """
-        data = struct.pack("!H", len(self.response)) + self.response
+        data = struct.pack('!H', len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data + data)
         m_rcv.assert_called_with(self.dnsr)
@@ -50,10 +41,7 @@ class TCPTestCase(unittest.TestCase):
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_partial_valid(self, m_rcv):
-        """
-        slice the messages but with entire len bytes
-        """
-        data = struct.pack("!H", len(self.response)) + self.response
+        data = struct.pack('!H', len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data[0:5])
         m_rcv.assert_not_called()
@@ -62,10 +50,7 @@ class TCPTestCase(unittest.TestCase):
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_len_byte(self, m_rcv):
-        """
-        the len bytes is divided into two responses
-        """
-        data = struct.pack("!H", len(self.response)) + self.response
+        data = struct.pack('!H', len(self.response)) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data[0:1])
         m_rcv.assert_not_called()
@@ -74,40 +59,30 @@ class TCPTestCase(unittest.TestCase):
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_complex(self, m_rcv):
-        """
-        more complex case with 3 messages
-        """
-        data = struct.pack("!H", len(self.response)) + self.response
+        data = struct.pack('!H', len(self.response)) + self.response
         length = len(data)
         data = data * 3
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data[0:length - 3])
         self.client_tcp.data_received(data[length - 3:length + 1])
+        m_rcv.assert_called_with(self.dnsr)
+        m_rcv.reset_mock()
         self.client_tcp.data_received(data[length + 1:2 * length])
+        m_rcv.assert_called_with(self.dnsr)
+        m_rcv.reset_mock()
         self.client_tcp.data_received(data[2 * length:])
         m_rcv.assert_called_with(self.dnsr)
-        self.assertEqual(m_rcv.call_count, 3)
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_single_long(self, m_rcv):
-        """
-        the message is actually longer than expected length
-        """
-        data = struct.pack("!H", len(self.response) - 3) + self.response
+        data = struct.pack('!H', len(self.response) - 3) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         with self.assertRaises(dns.exception.FormError):
             self.client_tcp.data_received(data)
 
     @patch.object(DNSClientProtocolTCP, 'receive_helper')
     def test_single_short(self, m_rcv):
-        """
-        the message is actually shorter than expected length
-        """
-        data = struct.pack("!H", len(self.response) + 3) + self.response
+        data = struct.pack('!H', len(self.response) + 3) + self.response
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data)
         m_rcv.assert_not_called()
-
-
-if __name__ == '__main__':
-    unittest.main()

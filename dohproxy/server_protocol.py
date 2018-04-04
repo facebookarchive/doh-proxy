@@ -38,7 +38,8 @@ class DNSClient():
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
         if logger is None:
-            self.logger = utils.configure_logger('DNSClient', 'DEBUG')
+            logger = utils.configure_logger('DNSClient', 'DEBUG')
+        self.logger = logger
 
     async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         dnsr = await self.query_udp(dnsq, clientip, timeout=timeout)
@@ -70,7 +71,7 @@ class DNSClient():
             dnsr = fut.result()
             dnsr.id = qid
         except asyncio.TimeoutError:
-            self.logger.debug("Request timed out")
+            self.logger.debug('Request timed out')
             dnsr = None
         return dnsr
 
@@ -78,13 +79,13 @@ class DNSClient():
 class DNSClientProtocol(asyncio.Protocol):
 
     def __init__(self, dnsq, fut, clientip, logger=None):
-        self.dnsq = dnsq
         self.transport = None
+        self.dnsq = dnsq
         self.fut = fut
-        self.logger = logger
         self.clientip = clientip
         if logger is None:
-            self.logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
+            logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
+        self.logger = logger
 
     def connection_lost(self, exc):
         pass
@@ -139,7 +140,7 @@ class DNSClientProtocolUDP(DNSClientProtocol):
         self.transport.close()
 
     def error_received(self, exc):
-        self.logger.debug('Error received')
+        self.logger.debug('Error received: ' + str(exc))
 
 
 class DNSClientProtocolTCP(DNSClientProtocol):
