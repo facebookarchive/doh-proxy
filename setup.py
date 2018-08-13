@@ -40,6 +40,7 @@ setup(
     description='A client and proxy implementation of '
                 'https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/facebookexperimental/doh-proxy',
     author='Manu Bretelle',
     author_email='chantra@fb.com',
