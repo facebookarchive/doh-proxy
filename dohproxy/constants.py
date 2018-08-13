@@ -8,7 +8,7 @@
 #
 
 DOH_URI = '/dns-query'
-DOH_MEDIA_TYPE = 'application/dns-udpwireformat'
+DOH_MEDIA_TYPE = 'application/dns-message'
 DOH_CONTENT_TYPE_PARAM = 'ct'
 DOH_DNS_PARAM = 'dns'
 DOH_H2_NPN_PROTOCOLS = ['h2']
