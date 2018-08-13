@@ -4,9 +4,11 @@
 
 ### Fixed
 - Handle dns message with empty question section GH #21
+- Make https://pypi.org/project/doh-proxy/ display description using markdown syntax.
 
 ### Changes
 - separate server side protocol classes from client side ones
+- Support for [draft-13](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-13). @bagder
 
 ### Added
 - support listening from multiple IPs for proxy services.
