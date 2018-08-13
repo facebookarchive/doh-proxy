@@ -28,52 +28,110 @@ from unittest_data_provider import data_provider
 #    echo -e "(b'$line', '$(echo -n $line | base64 | tr -d '='  )',),"
 # done
 
-TEST_CA = (
-    "-----BEGIN CERTIFICATE-----\n"
-    "MIIDVzCCAj+gAwIBAgIJAOGYgypV1bcIMA0GCSqGSIb3DQEBCwUAMEIxCzAJBgNV\n"
-    "BAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQg\n"
-    "Q29tcGFueSBMdGQwHhcNMTgwMjI2MjIxODA3WhcNMjgwMjI0MjIxODA3WjBCMQsw\n"
-    "CQYDVQQGEwJYWDEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZh\n"
-    "dWx0IENvbXBhbnkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n"
-    "zkceT8GjMPz7e6nU30CO6aEonx3iszpNXpa+nH31M1NBs4wF2Rli9M1exyX2tAu9\n"
-    "gr4ImpIXurryeT61RJYprRBLBdy2FBwx7tgSOeaxZupnQkfd7HwtBJD3dg7cBGpe\n"
-    "RbJ44CQozLt0n16FM7yX2NwBxBxMKG+Brqo+PB9dR219Nzh5jB/UTWH21rrMYjiW\n"
-    "ABa0OnMh/oc/YGSuR7ymtYWIKL2u3fZ1wV6yCblAKDIhAOhxY3yL6SxyS4uE2j8i\n"
-    "XuMNCApD7mKbS3DGK6/H/zbn5jVwpzPr1FCPCkuWixoFH9Om6d7+x0HPrrO7yYND\n"
-    "5cNxqR8mpsy2tpHDG+9MyQIDAQABo1AwTjAdBgNVHQ4EFgQUxLNYNYbSS7j6P6Wh\n"
-    "UwToShMPcPIwHwYDVR0jBBgwFoAUxLNYNYbSS7j6P6WhUwToShMPcPIwDAYDVR0T\n"
-    "BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEACj/aXTKWStuM7PaiGzeuDHCyIRMm\n"
-    "fDoRndTZXMH3bKmIb+2DlTjcLvHUeFSs21opssPL1U1fcvJRi3Yd5DYboiKILjO/\n"
-    "0iNVGx6CPMiZZsYb+yeoA2ZtVqe/HoKzmeak4nP/QTv5xYRtFgSzXFmEPuC8CWdr\n"
-    "xBdVAGX08H8vYlQk72YjKS/eJ6WbrijU0OnI3ZVlhMmlhwzW1cr/QmJSPoTsbS+a\n"
-    "3c2aLV6NGplhmr2CuqqznDKT/QfxSk5qMoKAMdtA4iT5S5fPG5kGExt2MD+aimOw\n"
-    "DOeHuyCLRXxIolT+8r2BY56sV1uYyuBFw0RAnEpmnc2d072DND6XcDeQCw==\n"
-    "-----END CERTIFICATE-----"
-)
+TEST_CA = ("-----BEGIN CERTIFICATE-----\n"
+           "MIIDVzCCAj+gAwIBAgIJAOGYgypV1bcIMA0GCSqGSIb3DQEBCwUAMEIxCzAJBgNV\n"
+           "BAYTAlhYMRUwEwYDVQQHDAxEZWZhdWx0IENpdHkxHDAaBgNVBAoME0RlZmF1bHQg\n"
+           "Q29tcGFueSBMdGQwHhcNMTgwMjI2MjIxODA3WhcNMjgwMjI0MjIxODA3WjBCMQsw\n"
+           "CQYDVQQGEwJYWDEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZh\n"
+           "dWx0IENvbXBhbnkgTHRkMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA\n"
+           "zkceT8GjMPz7e6nU30CO6aEonx3iszpNXpa+nH31M1NBs4wF2Rli9M1exyX2tAu9\n"
+           "gr4ImpIXurryeT61RJYprRBLBdy2FBwx7tgSOeaxZupnQkfd7HwtBJD3dg7cBGpe\n"
+           "RbJ44CQozLt0n16FM7yX2NwBxBxMKG+Brqo+PB9dR219Nzh5jB/UTWH21rrMYjiW\n"
+           "ABa0OnMh/oc/YGSuR7ymtYWIKL2u3fZ1wV6yCblAKDIhAOhxY3yL6SxyS4uE2j8i\n"
+           "XuMNCApD7mKbS3DGK6/H/zbn5jVwpzPr1FCPCkuWixoFH9Om6d7+x0HPrrO7yYND\n"
+           "5cNxqR8mpsy2tpHDG+9MyQIDAQABo1AwTjAdBgNVHQ4EFgQUxLNYNYbSS7j6P6Wh\n"
+           "UwToShMPcPIwHwYDVR0jBBgwFoAUxLNYNYbSS7j6P6WhUwToShMPcPIwDAYDVR0T\n"
+           "BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEACj/aXTKWStuM7PaiGzeuDHCyIRMm\n"
+           "fDoRndTZXMH3bKmIb+2DlTjcLvHUeFSs21opssPL1U1fcvJRi3Yd5DYboiKILjO/\n"
+           "0iNVGx6CPMiZZsYb+yeoA2ZtVqe/HoKzmeak4nP/QTv5xYRtFgSzXFmEPuC8CWdr\n"
+           "xBdVAGX08H8vYlQk72YjKS/eJ6WbrijU0OnI3ZVlhMmlhwzW1cr/QmJSPoTsbS+a\n"
+           "3c2aLV6NGplhmr2CuqqznDKT/QfxSk5qMoKAMdtA4iT5S5fPG5kGExt2MD+aimOw\n"
+           "DOeHuyCLRXxIolT+8r2BY56sV1uYyuBFw0RAnEpmnc2d072DND6XcDeQCw==\n"
+           "-----END CERTIFICATE-----")
 
 
 def b64_source():
     return [
-        (b'punner', 'cHVubmVy',),
-        (b'visitation', 'dmlzaXRhdGlvbg',),
-        (b'werf', 'd2VyZg',),
-        (b'Hysterophyta', 'SHlzdGVyb3BoeXRh',),
-        (b'diurne', 'ZGl1cm5l',),
-        (b'reputableness', 'cmVwdXRhYmxlbmVzcw',),
-        (b'uncompletely', 'dW5jb21wbGV0ZWx5',),
-        (b'thalami', 'dGhhbGFtaQ',),
-        (b'unpapal', 'dW5wYXBhbA',),
-        (b'nonapposable', 'bm9uYXBwb3NhYmxl',),
-        (b'synalgic', 'c3luYWxnaWM',),
-        (b'exscutellate', 'ZXhzY3V0ZWxsYXRl',),
-        (b'predelegation', 'cHJlZGVsZWdhdGlvbg',),
-        (b'Varangi', 'VmFyYW5naQ',),
-        (b'coucal', 'Y291Y2Fs',),
-        (b'intensely', 'aW50ZW5zZWx5',),
-        (b'apprize', 'YXBwcml6ZQ',),
-        (b'jirble', 'amlyYmxl',),
-        (b'imparalleled', 'aW1wYXJhbGxlbGVk',),
-        (b'dinornithic', 'ZGlub3JuaXRoaWM',),
+        (
+            b'punner',
+            'cHVubmVy',
+        ),
+        (
+            b'visitation',
+            'dmlzaXRhdGlvbg',
+        ),
+        (
+            b'werf',
+            'd2VyZg',
+        ),
+        (
+            b'Hysterophyta',
+            'SHlzdGVyb3BoeXRh',
+        ),
+        (
+            b'diurne',
+            'ZGl1cm5l',
+        ),
+        (
+            b'reputableness',
+            'cmVwdXRhYmxlbmVzcw',
+        ),
+        (
+            b'uncompletely',
+            'dW5jb21wbGV0ZWx5',
+        ),
+        (
+            b'thalami',
+            'dGhhbGFtaQ',
+        ),
+        (
+            b'unpapal',
+            'dW5wYXBhbA',
+        ),
+        (
+            b'nonapposable',
+            'bm9uYXBwb3NhYmxl',
+        ),
+        (
+            b'synalgic',
+            'c3luYWxnaWM',
+        ),
+        (
+            b'exscutellate',
+            'ZXhzY3V0ZWxsYXRl',
+        ),
+        (
+            b'predelegation',
+            'cHJlZGVsZWdhdGlvbg',
+        ),
+        (
+            b'Varangi',
+            'VmFyYW5naQ',
+        ),
+        (
+            b'coucal',
+            'Y291Y2Fs',
+        ),
+        (
+            b'intensely',
+            'aW50ZW5zZWx5',
+        ),
+        (
+            b'apprize',
+            'YXBwcml6ZQ',
+        ),
+        (
+            b'jirble',
+            'amlyYmxl',
+        ),
+        (
+            b'imparalleled',
+            'aW1wYXJhbGxlbGVk',
+        ),
+        (
+            b'dinornithic',
+            'ZGlub3JuaXRoaWM',
+        ),
     ]
 
 
@@ -96,10 +154,26 @@ class TestDOHB64(unittest.TestCase):
 
 def make_url_source():
     return [
-        ('foo', 'uri', 'https://foo/uri',),
-        ('foo', '/uri', 'https://foo/uri',),
-        ('foo', '/uri/', 'https://foo/uri/',),
-        ('foo:8443', '/uri/', 'https://foo:8443/uri/',),
+        (
+            'foo',
+            'uri',
+            'https://foo/uri',
+        ),
+        (
+            'foo',
+            '/uri',
+            'https://foo/uri',
+        ),
+        (
+            'foo',
+            '/uri/',
+            'https://foo/uri/',
+        ),
+        (
+            'foo:8443',
+            '/uri/',
+            'https://foo:8443/uri/',
+        ),
     ]
 
 
@@ -110,11 +184,10 @@ class TestMakeURL(unittest.TestCase):
 
 
 class TestBuildQueryParams(unittest.TestCase):
-
     def test_has_right_keys(self):
-        """ Check that this function returns body and ct parameters only. """
+        """ Check that this function returns body only. """
         keys = {
-            constants.DOH_DNS_PARAM, constants.DOH_CONTENT_TYPE_PARAM
+            constants.DOH_DNS_PARAM,
         }
         self.assertEqual(keys, utils.build_query_params(b'').keys())
 
@@ -132,9 +205,7 @@ class TestBuildQueryParams(unittest.TestCase):
         q = b''
         params = utils.build_query_params(q)
         self.assertEqual(
-            utils.doh_b64_encode(q),
-            params[constants.DOH_DNS_PARAM]
-        )
+            utils.doh_b64_encode(q), params[constants.DOH_DNS_PARAM])
 
 
 class TestTypoChecker(unittest.TestCase):
@@ -178,13 +249,22 @@ class TestTypoChecker(unittest.TestCase):
 
 def extract_path_params_source():
     return [
-        ('/foo?a=b&c=d#1234', ('/foo', {'a': ['b'], 'c': ['d']})),
+        ('/foo?a=b&c=d#1234', ('/foo', {
+            'a': ['b'],
+            'c': ['d']
+        })),
         ('/foo', ('/foo', {})),
         ('/foo?#', ('/foo', {})),
         ('foo', ('foo', {})),
         # Test that we keep empty values
-        ('/foo?a=b&c', ('/foo', {'a': ['b'], 'c': ['']})),
-        ('/foo?a=b&c=', ('/foo', {'a': ['b'], 'c': ['']})),
+        ('/foo?a=b&c', ('/foo', {
+            'a': ['b'],
+            'c': ['']
+        })),
+        ('/foo?a=b&c=', ('/foo', {
+            'a': ['b'],
+            'c': ['']
+        })),
     ]
 
 
@@ -208,30 +288,26 @@ def extract_ct_body_valid_source():
         ),
         (
             '/foo?ct=bar&dns=aW1wYXJhbGxlbGVk',
-            ('bar', b'imparalleled'),
-        )
+            (constants.DOH_MEDIA_TYPE, b'imparalleled'),
+        ),
+        (
+            '/foo?dns=aW1wYXJhbGxlbGVk',
+            (constants.DOH_MEDIA_TYPE, b'imparalleled'),
+        ),
     ]
 
 
 def extract_ct_body_invalid_source():
-    return [
-        (
-            '/foo?dns=aW1wYXJhbGxlbGVk',
-            'Missing Content Type Parameter',
-        ),
-        (
-            '/foo?ct=&dns=',
-            'Missing Body',
-        ),
-        (
-            '/foo?ct=',
-            'Missing Body Parameter',
-        ),
-        (
-            '/foo?ct=bar&dns=_',
-            'Invalid Body Parameter',
-        )
-    ]
+    return [(
+        '/foo?ct=&dns=',
+        'Missing Body',
+    ), (
+        '/foo?ct=',
+        'Missing Body Parameter',
+    ), (
+        '/foo?ct=bar&dns=_',
+        'Invalid Body Parameter',
+    )]
 
 
 class TestExtractCtBody(unittest.TestCase):
@@ -245,22 +321,22 @@ class TestExtractCtBody(unittest.TestCase):
     @data_provider(extract_ct_body_invalid_source)
     def test_extract_ct_body_invalid(self, uri, output):
         path, params = utils.extract_path_params(uri)
-        with self.assertRaisesRegex(
-                server_protocol.DOHParamsException, output):
+        with self.assertRaisesRegex(server_protocol.DOHParamsException,
+                                    output):
             utils.extract_ct_body(params)
 
 
 class TestDNSQueryFromBody(unittest.TestCase):
     def test_invalid_message_no_debug(self):
         body = 'a'
-        with self.assertRaisesRegex(
-                server_protocol.DOHDNSException, 'Malformed DNS query'):
+        with self.assertRaisesRegex(server_protocol.DOHDNSException,
+                                    'Malformed DNS query'):
             utils.dns_query_from_body(body)
 
     def test_invalid_message_with_debug(self):
         body = 'a'
-        with self.assertRaisesRegex(
-                server_protocol.DOHDNSException, 'is too short'):
+        with self.assertRaisesRegex(server_protocol.DOHDNSException,
+                                    'is too short'):
             utils.dns_query_from_body(body, debug=True)
 
     def test_valid_message(self):
@@ -270,7 +346,6 @@ class TestDNSQueryFromBody(unittest.TestCase):
 
 
 class TestDNSQuery2Log(unittest.TestCase):
-
     def setUp(self):
         self._qname = 'example.com'
         self._qtype = 'A'
@@ -300,7 +375,6 @@ class TestDNSQuery2Log(unittest.TestCase):
 
 
 class TestDNSAns2Log(unittest.TestCase):
-
     def setUp(self):
         self._qname = 'example.com'
         self._qtype = 'A'
@@ -389,8 +463,7 @@ class TestSSLContext(unittest.TestCase):
             ca.write(self._CA.encode())
             ca.flush()
             sslctx = utils.create_custom_ssl_context(
-                insecure=False,
-                cafile=ca.name
-            )
-            self.assertTrue(self._CA_serial in [crt['serialNumber'] for crt
-                            in sslctx.get_ca_certs()])
+                insecure=False, cafile=ca.name)
+            self.assertTrue(
+                self._CA_serial in
+                [crt['serialNumber'] for crt in sslctx.get_ca_certs()])

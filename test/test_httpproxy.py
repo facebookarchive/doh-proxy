@@ -19,8 +19,15 @@ from dohproxy import httpproxy
 from dohproxy import utils
 
 
-class HTTPProxyTestCase(AioHTTPTestCase):
+def echo_dns_q(q):
+    return aiohttp.web.Response(
+        status=200,
+        body=q.to_wire(),
+        content_type=constants.DOH_MEDIA_TYPE,
+    )
 
+
+class HTTPProxyTestCase(AioHTTPTestCase):
     def setUp(self):
         super().setUp()
         self.endpoint = '/dns'
@@ -32,10 +39,14 @@ class HTTPProxyTestCase(AioHTTPTestCase):
 
     def get_args(self):
         return [
-            '--listen-port', '0',
-            '--level', 'DEBUG',
-            '--listen-address', '127.0.0.1',
-            '--uri', '/dns',
+            '--listen-port',
+            '0',
+            '--level',
+            'DEBUG',
+            '--listen-address',
+            '127.0.0.1',
+            '--uri',
+            '/dns',
             '--trusted',
         ]
 
@@ -48,7 +59,6 @@ class HTTPProxyTestCase(AioHTTPTestCase):
 
 
 class HTTPProxyGETTestCase(HTTPProxyTestCase):
-
     def setUp(self):
         super().setUp()
         self.method = 'GET'
@@ -59,49 +69,45 @@ class HTTPProxyGETTestCase(HTTPProxyTestCase):
         """ Test that when we run a valid GET request, resolve will be called
         and returns some content, here echoes the request.
         """
-        resolve.return_value = aiohttp.web.Response(
-            status=200,
-            body=self.dnsq.to_wire(),
-            content_type=constants.DOH_MEDIA_TYPE,
-        )
+        resolve.return_value = echo_dns_q(self.dnsq)
         params = utils.build_query_params(self.dnsq.to_wire())
         request = await self.client.request(
-            self.method,
-            self.endpoint,
-            params=params)
+            self.method, self.endpoint, params=params)
         self.assertEqual(request.status, 200)
         content = await request.read()
 
         self.assertEqual(self.dnsq, dns.message.from_wire(content))
 
+    @asynctest.patch.object(httpproxy.DOHApplication, 'resolve')
     @unittest_run_loop
-    async def test_get_request_no_content_type(self):
-        """ Test that when no ct parameter, we fail with missing content type
-        parameter.
+    async def test_get_request_bad_content_type(self, resolve):
+        """ Test that when an invalid content-type is provided, we return 200.
+        content-type is not used in GET request anymore, so it will default to
+        'application/dns-message'
         """
+        resolve.return_value = echo_dns_q(self.dnsq)
         params = utils.build_query_params(self.dnsq.to_wire())
-        del params[constants.DOH_CONTENT_TYPE_PARAM]
+        params['ct'] = 'bad/type'
         request = await self.client.request(
-            self.method,
-            self.endpoint,
-            params=params)
-        self.assertEqual(request.status, 400)
+            self.method, self.endpoint, params=params)
+        self.assertEqual(request.status, 200)
         content = await request.read()
-        self.assertEqual(content, b'Missing Content Type Parameter')
+        self.assertEqual(self.dnsq, dns.message.from_wire(content))
 
+    @asynctest.patch.object(httpproxy.DOHApplication, 'resolve')
     @unittest_run_loop
-    async def test_get_request_bad_content_type(self):
-        """ Test that when an invalid content-type is provided, we return 415.
+    async def test_get_request_no_content_type(self, resolve):
+        """ Test that when no ct parameter, we accept the query.
+        content-type is not used in GET request anymore, so it will default to
+        'application/dns-message'
         """
+        resolve.return_value = echo_dns_q(self.dnsq)
         params = utils.build_query_params(self.dnsq.to_wire())
-        params[constants.DOH_CONTENT_TYPE_PARAM] = 'bad/type'
         request = await self.client.request(
-            self.method,
-            self.endpoint,
-            params=params)
-        self.assertEqual(request.status, 415)
+            self.method, self.endpoint, params=params)
+        self.assertEqual(request.status, 200)
         content = await request.read()
-        self.assertEqual(content, b'Unsupported content type')
+        self.assertEqual(self.dnsq, dns.message.from_wire(content))
 
     @unittest_run_loop
     async def test_get_request_empty_body(self):
@@ -110,9 +116,7 @@ class HTTPProxyGETTestCase(HTTPProxyTestCase):
         params = utils.build_query_params(self.dnsq.to_wire())
         params[constants.DOH_DNS_PARAM] = ''
         request = await self.client.request(
-            self.method,
-            self.endpoint,
-            params=params)
+            self.method, self.endpoint, params=params)
         self.assertEqual(request.status, 400)
         content = await request.read()
         self.assertEqual(content, b'Missing Body')
@@ -124,16 +128,13 @@ class HTTPProxyGETTestCase(HTTPProxyTestCase):
         params = utils.build_query_params(self.dnsq.to_wire())
         params[constants.DOH_DNS_PARAM] = 'dummy'
         request = await self.client.request(
-            self.method,
-            self.endpoint,
-            params=params)
+            self.method, self.endpoint, params=params)
         self.assertEqual(request.status, 400)
         content = await request.read()
         self.assertEqual(content, b'Invalid Body Parameter')
 
 
 class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
-
     def setUp(self):
         super().setUp()
         self.method = 'POST'
@@ -150,13 +151,10 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         """ Test that when we run a valid POST request, resolve will be called
         and returns some content, here echoes the request.
         """
-        resolve.return_value = aiohttp.web.Response(
-            status=200,
-            body=self.dnsq.to_wire(),
-            content_type=constants.DOH_MEDIA_TYPE,
-        )
+        resolve.return_value = echo_dns_q(self.dnsq)
         request = await self.client.request(
-            self.method, self.endpoint,
+            self.method,
+            self.endpoint,
             headers=self.make_header(),
             data=self.make_body(self.dnsq))
 
@@ -170,7 +168,8 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         """ Test that when no content-type is provided, we return 415.
         """
         request = await self.client.request(
-            self.method, self.endpoint,
+            self.method,
+            self.endpoint,
             headers={},
             data=self.make_body(self.dnsq))
 
@@ -184,8 +183,9 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         """ Test that when an invalid content-type is provided, we return 415.
         """
         request = await self.client.request(
-            self.method, self.endpoint,
-            headers={constants.DOH_CONTENT_TYPE_PARAM: 'bad/type'},
+            self.method,
+            self.endpoint,
+            headers={'content-type': 'bad/type'},
             data=self.make_body(self.dnsq))
 
         self.assertEqual(request.status, 415)
@@ -197,7 +197,8 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         """ Test that when an empty body is provided, we return 400.
         """
         request = await self.client.request(
-            self.method, self.endpoint,
+            self.method,
+            self.endpoint,
             headers=self.make_header(),
         )
 
@@ -210,7 +211,8 @@ class HTTPProxyPOSTTestCase(HTTPProxyTestCase):
         """ Test that when an invalid dns request is provided, we return 400.
         """
         request = await self.client.request(
-            self.method, self.endpoint,
+            self.method,
+            self.endpoint,
             headers=self.make_header(),
             data='dummy',
         )
@@ -230,20 +232,21 @@ class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
 
     def get_args(self):
         return [
-            '--listen-port', '0',
-            '--level', 'DEBUG',
-            '--listen-address', '127.0.0.1',
-            '--uri', '/dns',
+            '--listen-port',
+            '0',
+            '--level',
+            'DEBUG',
+            '--listen-address',
+            '127.0.0.1',
+            '--uri',
+            '/dns',
         ]
 
     @asynctest.patch.object(aiohttp_remotes, 'XForwardedStrict')
     @asynctest.patch.object(aiohttp_remotes, 'XForwardedRelaxed')
     @unittest_run_loop
     async def test_xforwarded_mode_with_trusted_hosts(
-        self,
-        mock_xforwarded_relaxed,
-        mock_xforwarded_strict
-    ):
+            self, mock_xforwarded_relaxed, mock_xforwarded_strict):
         """ Test that when the aiohttp app have some trusted hosts specified at
         initialization, the XForwardedStrict method is applied.
         """
@@ -259,10 +262,7 @@ class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
     @asynctest.patch.object(aiohttp_remotes, 'XForwardedRelaxed')
     @unittest_run_loop
     async def test_xforwarded_mode_without_trusted_hosts(
-        self,
-        mock_xforwarded_relaxed,
-        mock_xforwarded_strict
-    ):
+            self, mock_xforwarded_relaxed, mock_xforwarded_strict):
         """ Test that when the aiohttp app have some trusted hosts specified at
         initialization, the XForwardedStrict method is applied.
         """
