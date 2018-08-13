@@ -141,17 +141,7 @@ def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
         body.
     :raises: a DOHParamsException with an explanatory message.
     """
-    if constants.DOH_CONTENT_TYPE_PARAM in params and \
-            len(params[constants.DOH_CONTENT_TYPE_PARAM]):
-        ct = params[constants.DOH_CONTENT_TYPE_PARAM][0]
-        if not ct:
-            # An empty value indicates the default
-            # application/dns-udpwireformat type
-            ct = constants.DOH_MEDIA_TYPE
-    else:
-        raise server_protocol.DOHParamsException(
-            b'Missing Content Type Parameter')
-
+    ct = constants.DOH_MEDIA_TYPE
     if constants.DOH_DNS_PARAM in params and \
             len(params[constants.DOH_DNS_PARAM]):
         try:
@@ -208,7 +198,6 @@ def build_query_params(dns_query):
     """
     return {
         constants.DOH_DNS_PARAM: doh_b64_encode(dns_query),
-        constants.DOH_CONTENT_TYPE_PARAM: constants.DOH_MEDIA_TYPE,
     }
 
 
