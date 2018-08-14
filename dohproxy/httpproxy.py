@@ -18,7 +18,7 @@ from multidict import CIMultiDict
 
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
-    DNSClientProtocol,
+    DNSClient,
     DOHDNSException,
     DOHParamsException,
 )
@@ -49,13 +49,10 @@ async def doh1handler(request):
         body = await request.content.read()
         ct = request.headers.get('content-type')
     else:
-        return aiohttp.web.Response(
-            status=501, body=b'Not Implemented'
-        )
+        return aiohttp.web.Response(status=501, body=b'Not Implemented')
     if ct != constants.DOH_MEDIA_TYPE:
         return aiohttp.web.Response(
-            status=415, body=b'Unsupported content type'
-        )
+            status=415, body=b'Unsupported content type')
 
     # Do actual DNS Query
     try:
@@ -66,40 +63,26 @@ async def doh1handler(request):
     dnsq = dns.message.from_wire(body)
 
     clientip = request.transport.get_extra_info('peername')[0]
-    request.app.logger.info(
-        '[HTTPS] {} (Original IP: {}) {}'.format(
-            clientip,
-            request.remote,
-            utils.dnsquery2log(dnsq)
-        )
-    )
+    request.app.logger.info('[HTTPS] {} (Original IP: {}) {}'.format(
+        clientip, request.remote, utils.dnsquery2log(dnsq)))
     return await request.app.resolve(request, dnsq)
 
 
 class DOHApplication(aiohttp.web.Application):
-
     def set_upstream_resolver(self, upstream_resolver, upstream_port):
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
 
     async def resolve(self, request, dnsq):
         self.time_stamp = time.time()
-        qid = dnsq.id
-        queue = asyncio.Queue(maxsize=1)
-        await self.loop.create_datagram_endpoint(
-                lambda: DNSClientProtocol(
-                    dnsq, queue, request.remote, logger=self.logger
-                ),
-                remote_addr=(self.upstream_resolver, self.upstream_port))
+        clientip = request.remote
+        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port)
+        dnsr = await dnsclient.query(dnsq, clientip)
 
-        try:
-            dnsr = await asyncio.wait_for(queue.get(), 10)
-            dnsr.id = qid
-            queue.task_done()
-            return self.on_answer(request, dnsr=dnsr)
-        except asyncio.TimeoutError:
-            self.logger.debug("Request timed out")
+        if dnsr is None:
             return self.on_answer(request, dnsq=dnsq)
+        else:
+            return self.on_answer(request, dnsr=dnsr)
 
     def on_answer(self, request, dnsr=None, dnsq=None):
         headers = CIMultiDict()
@@ -113,14 +96,8 @@ class DOHApplication(aiohttp.web.Application):
 
         clientip = request.transport.get_extra_info('peername')[0]
         interval = int((time.time() - self.time_stamp) * 1000)
-        self.logger.info(
-            '[HTTPS] {} (Original IP: {}) {} {}ms'.format(
-                clientip,
-                request.remote,
-                utils.dnsans2log(dnsr),
-                interval
-            )
-        )
+        self.logger.info('[HTTPS] {} (Original IP: {}) {} {}ms'.format(
+            clientip, request.remote, utils.dnsans2log(dnsr), interval))
         if request.method == 'HEAD':
             body = b''
         else:
@@ -162,10 +139,7 @@ def get_app(args):
         x_forwarded_handling = \
             aiohttp_remotes.XForwardedStrict([args.trusted])
 
-    asyncio.ensure_future(aiohttp_remotes.setup(
-        app,
-        x_forwarded_handling)
-    )
+    asyncio.ensure_future(aiohttp_remotes.setup(app, x_forwarded_handling))
     return app
 
 
