@@ -38,7 +38,7 @@ setup(
     name='doh-proxy',
     version=find_version('dohproxy', '__init__.py'),
     description='A client and proxy implementation of '
-                'https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-02',
+                'https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-13',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/facebookexperimental/doh-proxy',

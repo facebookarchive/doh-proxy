@@ -7,7 +7,7 @@ layout: default
 [![PyPI version](https://badge.fury.io/py/doh-proxy.svg)](https://badge.fury.io/py/doh-proxy)
 
 A set of python 3 scripts that supports proxying DNS over HTTPS as specified
-in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-03).
+in the [IETF Draft draft-ietf-doh-dns-over-https](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-13).
 
 DOH provides a way to run encrypted DNS over HTTPS, a protocol which can freely
 traverse firewalls when other encrypted mechanism may be blocked.
@@ -207,9 +207,13 @@ Check the [tutorial page](tutorials.md)
 
 ### Fixed
 - Handle dns message with empty question section GH #21
+- Make https://pypi.org/project/doh-proxy/ display description using markdown syntax.
 
 ### Changes
 - separate server side protocol classes from client side ones
+- Support for [draft-13](https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-13). @bagder
+- DNSClientProtocol is now an async friendly class which will retry over TCP on timeout and/or TC bit set. @newEZ
+- Both `doh-httpproxy` and `doh-proxy` now use the new DNSClient @newEZ and @chantra
 
 ### Added
 - support listening from multiple IPs for proxy services.
