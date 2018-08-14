@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.0.8] - 2018-08-14
+
+### Changes
+- [doc] don't use `sudo` when not required. @jpmens
+- version bump to get markdown rendering on pypi.
+
 ## [0.0.7] - 2018-08-13
 
 ### Fixed
@@ -90,7 +96,8 @@
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.7...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...v0.0.5
