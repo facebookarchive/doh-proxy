@@ -205,6 +205,8 @@ Check the [tutorial page](tutorials.md)
 
 ## [Unreleased]
 
+## [0.0.7] - 2018-08-13
+
 ### Fixed
 - Handle dns message with empty question section GH #21
 - Make https://pypi.org/project/doh-proxy/ display description using markdown syntax.
@@ -291,7 +293,8 @@ Check the [tutorial page](tutorials.md)
 - doc
 - CHANGELOG.md and README.md
 
-[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.6...HEAD
+[Unreleased]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/facebookexperimental/doh-proxy/compare/v0.0.3...v0.0.4
