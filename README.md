@@ -62,7 +62,7 @@ unprivileged and on multiple cores.
 
 
 ```shell
-$ sudo doh-httpproxy \
+$ doh-httpproxy \
     --upstream-resolver=::1 \
     --port 8080 \
     --listen-address ::1
