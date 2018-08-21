@@ -17,6 +17,7 @@ import unittest
 from dohproxy import client_protocol, utils
 
 TEST_TIMEOUT = 3.0
+TRAVIS_TIMEOUT = 15.0
 
 
 def known_servers():
@@ -60,7 +61,9 @@ class TestKnownServers(asynctest.TestCase):
         super().setUp()
         # ALPN requires >=openssl-1.0.2
         # NPN requires >=openssl-1.0.1
+        self.test_timeout = TEST_TIMEOUT
         if os.getenv('TRAVIS'):
+            self.test_timeout = TRAVIS_TIMEOUT
             for fn in ['set_alpn_protocols', 'set_npn_protocols']:
                 patcher = unittest.mock.patch('ssl.SSLContext.{0}'.format(fn))
                 patcher.start()
@@ -84,7 +87,7 @@ class TestKnownServers(asynctest.TestCase):
                 fut = c.make_request(None, build_query(
                     qname=domain, qtype="A"))
                 try:
-                    await asyncio.wait_for(fut, TEST_TIMEOUT)
+                    await asyncio.wait_for(fut, self.test_timeout)
                 except asyncio.TimeoutError:
                     raise unittest.SkipTest("%s Timeouted" % name)
                 self.assertEqual(1, len(c.result.question))
