@@ -28,9 +28,7 @@ def known_servers():
         # Name, Domain, endpoint
         ('Google', 'dns.google.com', '/experimental'),
         ('Cloudflare', 'cloudflare-dns.com', '/dns-query'),
-        # Not supporting draft-13?
-        # Received b'{DoH-server}: Error x09: Request not valid
-        # ('CleanBrowsing', 'doh.cleanbrowsing.org', '/doh/family-filter'),
+        ('CleanBrowsing', 'doh.cleanbrowsing.org', '/doh/family-filter/'),
         ('@chantra', 'dns.dnsoverhttps.net', '/dns-query'),
         ('@jedisct1', 'doh.crypto.sx', '/dns-query'),
         # Timeout
