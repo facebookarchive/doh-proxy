@@ -66,6 +66,7 @@ $ doh-httpproxy \
     --upstream-resolver=::1 \
     --port 8080 \
     --listen-address ::1
+    --trusted
 ```
 
 `doh-httpproxy` now also supports TLS, that you can enable passing the 
