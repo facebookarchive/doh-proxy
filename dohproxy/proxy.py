@@ -67,7 +67,7 @@ class H2Protocol(asyncio.Protocol):
     def data_received(self, data: bytes):
         try:
             events = self.conn.receive_data(data)
-        except ProtocolError as e:
+        except ProtocolError:
             self.transport.write(self.conn.data_to_send())
             self.transport.close()
         else:
