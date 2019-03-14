@@ -128,7 +128,7 @@ class DNSClientTestCase(AioHTTPTestCase):
 
 class DNSClientLoggerTestCase(DNSClientTestCase):
 
-    def setup(self):
+    def setUp(self):
         super().setUp()
 
     @asynctest.patch('dohproxy.server_protocol.DNSClientProtocolTCP')
