@@ -76,7 +76,7 @@ class DOHApplication(aiohttp.web.Application):
     async def resolve(self, request, dnsq):
         self.time_stamp = time.time()
         clientip = request.remote
-        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port)
+        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port, logger = self.logger)
         dnsr = await dnsclient.query(dnsq, clientip)
 
         if dnsr is None:

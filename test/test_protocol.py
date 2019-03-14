@@ -6,13 +6,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
+import asyncio
+import asynctest
 import dns
 import dns.message
 import struct
 import unittest
 
+from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from dohproxy import httpproxy
+from dohproxy import utils
+
 from unittest.mock import patch
-from dohproxy.server_protocol import DNSClientProtocolTCP
+from asyncio.base_events import BaseEventLoop
+from dohproxy.server_protocol import DNSClient, DNSClientProtocolTCP, DNSClientProtocolUDP
 
 
 class TCPTestCase(unittest.TestCase):
@@ -86,3 +93,69 @@ class TCPTestCase(unittest.TestCase):
         self.client_tcp = DNSClientProtocolTCP(self.dnsq, [], '10.0.0.0')
         self.client_tcp.data_received(data)
         m_rcv.assert_not_called()
+
+class DNSClientTestCase(AioHTTPTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.mylogger = utils.configure_logger('mylogger', 'ERROR')
+        self.dnsclient = DNSClient("", 80, logger = self.mylogger)
+        #self.dnsclient = DNSClient("", 80, logger = 'mylogger')
+        self.dnsq = dns.message.make_query(
+            qname='foo.example.com',
+            rdtype='A',
+        )
+
+    def get_args(self):
+            return [
+                '--listen-port',
+                '0',
+                '--level',
+                'DEBUG',
+                '--listen-address',
+                '127.0.0.1',
+                '--uri',
+                '/dns',
+                '--trusted',
+            ]
+
+    async def get_application(self):
+        """
+        Override the get_app method to return your application.
+        """
+        parser, args = httpproxy.parse_args(self.get_args())
+        return httpproxy.get_app(args)
+
+class DNSClientLoggerTestCase(DNSClientTestCase):
+
+    def setup(self):
+        super().setUp()
+
+    @asynctest.patch('dohproxy.server_protocol.DNSClientProtocolTCP')
+    @asynctest.patch.object(DNSClient, '_try_query')
+    @unittest_run_loop
+    async def test_get_DNSClientProtocolTCP_logger(self, Mocked_try_query, MockedDNSClientProtocolTCP):
+        self.upstream_resolver = None
+        self.upstream_port = None
+        try:
+            await self.dnsclient.query_tcp(self.dnsq, "127.0.0.1", timeout=0)
+        except:
+            pass
+        Mocked_try_query.return_value = self.dnsq
+        expectedlogger = utils.configure_logger(name='mylogger', level='ERROR')
+        self.assertEqual(MockedDNSClientProtocolTCP.call_args[1]['logger'], expectedlogger)
+
+
+    @asynctest.patch('dohproxy.server_protocol.DNSClientProtocolUDP')
+    @asynctest.patch.object(DNSClient, '_try_query')
+    @unittest_run_loop
+    async def test_get_DNSClientProtocolUDP_logger(self, Mocked_try_query, MockedDNSClientProtocolUDP):
+        self.upstream_resolver = None
+        self.upstream_port = None
+        try:
+            await self.dnsclient.query_udp(self.dnsq, "127.0.0.1", timeout=0)
+        except:
+            pass
+        Mocked_try_query.return_value = self.dnsq
+        expectedlogger = utils.configure_logger(name='mylogger', level='ERROR')
+        self.assertEqual(MockedDNSClientProtocolUDP.call_args[1]['logger'], expectedlogger)
