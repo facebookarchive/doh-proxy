@@ -11,12 +11,16 @@ import aiohttp
 import aiohttp_remotes
 import asynctest
 import dns.message
+import logging
 
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 
 from dohproxy import constants
 from dohproxy import httpproxy
 from dohproxy import utils
+from dohproxy import server_protocol
+from dohproxy.server_protocol import DNSClient
+from unittest.mock import MagicMock, patch
 
 
 def echo_dns_q(q):
@@ -273,3 +277,61 @@ class HTTPProxyXForwardedModeTestCase(HTTPProxyTestCase):
 
         mock_xforwarded_relaxed.called
         not mock_xforwarded_strict.called
+
+
+async def async_magic():
+    pass
+# make MagicMock could be used in 'await' expression
+MagicMock.__await__ = lambda x: async_magic().__await__()
+
+
+class DNSClientLoggerTestCase(HTTPProxyTestCase):
+    # This class mainly helps verify logger's propagation.
+
+    def setUp(self):
+        super().setUp()
+
+    @asynctest.patch.object(server_protocol.DNSClient, 'query')
+    @patch.object(httpproxy.DOHApplication, 'on_answer')
+    @asynctest.patch('dohproxy.httpproxy.DNSClient')
+    @unittest_run_loop
+    async def test_mock_dnsclient_assigned_logger(self, MockedDNSClient,
+                                                  Mockedon_answer,
+                                                  Mockedquery):
+        """ Test that when MockedDNSClient is created with the doh-httpproxy
+        logger and DEBUG level
+        """
+        Mockedquery.return_value = self.dnsq
+        Mockedon_answer.return_value = aiohttp.web.Response(status=200,
+                                                            body=b'Done')
+        params = utils.build_query_params(self.dnsq.to_wire())
+        request = await self.client.request(
+            'GET', self.endpoint, params=params)
+        request.remote = "127.0.0.1"
+        app = await self.get_application()
+        await app.resolve(request, self.dnsq)
+
+        mylogger = utils.configure_logger(name='doh-httpproxy', level='DEBUG')
+        MockedDNSClient.assert_called_with(app.upstream_resolver,
+                                           app.upstream_port,
+                                           logger=mylogger)
+
+    def test_dnsclient_none_logger(self):
+        """ Test that when DNSClient is created without a logger,
+        The default logger and default level 'DEBUG' should be used.
+        """
+        dnsclient = DNSClient("", 80)
+        self.assertEqual(dnsclient.logger.level, 10)  # DEBUG's level is 10
+        self.assertEqual(dnsclient.logger.name, 'DNSClient')
+
+    def test_dnsclient_assigned_logger(self):
+        """ Test that when DNSClient is created with a logger,
+        This logger and its corresponding level should be used.
+        """
+        mylogger = logging.getLogger("mylogger")
+        level = 'ERROR'
+        mylogger.setLevel(level)
+
+        dnsclient = DNSClient("", 80, logger=mylogger)
+        self.assertEqual(dnsclient.logger.level, 40)  # ERROR's level is 40
+        self.assertEqual(dnsclient.logger.name, 'mylogger')

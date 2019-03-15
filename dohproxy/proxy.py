@@ -193,7 +193,8 @@ class H2Protocol(asyncio.Protocol):
 
     async def resolve(self, dnsq, stream_id):
         clientip = self.transport.get_extra_info('peername')[0]
-        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port)
+        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port,
+                              logger=self.logger)
         dnsr = await dnsclient.query(dnsq, clientip)
 
         if dnsr is None:
