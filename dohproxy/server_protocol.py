@@ -118,14 +118,19 @@ class DNSClientProtocol(asyncio.Protocol):
 
     def receive_helper(self, dnsr):
         interval = int((time.time() - self.time_stamp) * 1000)
-        self.logger.info(
+        log_message = (
             '[DNS] {} {} {}ms'.format(
                 self.clientip,
                 utils.dnsans2log(dnsr),
                 interval
             )
         )
-        self.fut.set_result(dnsr)
+
+        if not self.fut.cancelled():
+            self.logger.info(log_message)
+            self.fut.set_result(dnsr)
+        else:
+            self.logger.info(log_message + '(CANCELLED)')
 
 
 class DNSClientProtocolUDP(DNSClientProtocol):
