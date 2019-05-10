@@ -34,8 +34,8 @@ def known_servers():
         ('@jedisct1', 'doh.crypto.sx', '/dns-query'),
         # Timeout
         # ('SecureDNS.eu', 'doh.securedns.eu', '/dns-query'),
-        ('BlahDNS.com JP', 'doh.blahdns.com', '/dns-query'),
-        ('BlahDNS.com DE', 'doh.de.blahdns.com', '/dns-query'),
+        ('BlahDNS.com JP', 'doh-jp.blahdns.com', '/dns-query'),
+        ('BlahDNS.com DE', 'doh-de.blahdns.com', '/dns-query'),
         ('NekomimiRouter.com', 'dns.dns-over-https.com', '/dns-query'),
     ]
 
@@ -64,7 +64,7 @@ class TestKnownServers(asynctest.TestCase):
         self.test_timeout = TEST_TIMEOUT
         if os.getenv('TRAVIS'):
             self.test_timeout = TRAVIS_TIMEOUT
-            for fn in ['set_alpn_protocols', 'set_npn_protocols']:
+            for fn in ['set_alpn_protocols']:
                 patcher = unittest.mock.patch('ssl.SSLContext.{0}'.format(fn))
                 patcher.start()
                 self.addCleanup(patcher.stop)
