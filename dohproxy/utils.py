@@ -128,7 +128,6 @@ def create_custom_ssl_context(
             sslctx.load_verify_locations(cafile=cafile, capath=None)
 
     sslctx.set_alpn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
-    sslctx.set_npn_protocols(constants.DOH_H2_NPN_PROTOCOLS)
 
     return sslctx
 

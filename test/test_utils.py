@@ -437,7 +437,7 @@ class TestSSLContext(unittest.TestCase):
 
         # ALPN requires >=openssl-1.0.2
         # NPN requires >=openssl-1.0.1
-        for fn in ['set_alpn_protocols', 'set_npn_protocols']:
+        for fn in ['set_alpn_protocols']:
             patcher = unittest.mock.patch('ssl.SSLContext.{0}'.format(fn))
             patcher.start()
             self.addCleanup(patcher.stop)
