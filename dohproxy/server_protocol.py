@@ -145,6 +145,7 @@ class DNSClientProtocolUDP(DNSClientProtocol):
         self.transport.close()
 
     def error_received(self, exc):
+        self.transport.close()
         self.logger.exception('Error received: ' + str(exc))
 
 
