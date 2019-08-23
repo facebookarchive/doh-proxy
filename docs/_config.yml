@@ -1,5 +1,6 @@
 ---
 name: DOH Proxy
+title: DOH Proxy
 description: A DNS-over-HTTPS Proxy
 repository: facebookexperimental/doh-proxy
 theme: jekyll-theme-slate
@@ -8,7 +9,7 @@ sass:
   style: compressed
 markdown: kramdown
 
-gems:
+plugins:
   - jekyll-relative-links
 
 relative_links:
