@@ -50,28 +50,29 @@ class DNSClient():
     async def query_udp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         qid = dnsq.id
         fut = asyncio.Future()
-        await self.loop.create_datagram_endpoint(
+        transport, _ = await self.loop.create_datagram_endpoint(
             lambda: DNSClientProtocolUDP(
                 dnsq, fut, clientip, logger=self.logger),
             remote_addr=(self.upstream_resolver, self.upstream_port))
-        return await self._try_query(fut, qid, timeout)
+        return await self._try_query(fut, transport, qid, timeout)
 
     async def query_tcp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         qid = dnsq.id
         fut = asyncio.Future()
-        await self.loop.create_connection(
+        transport, _ = await self.loop.create_connection(
             lambda: DNSClientProtocolTCP(
                 dnsq, fut, clientip, logger=self.logger),
             self.upstream_resolver, self.upstream_port)
-        return await self._try_query(fut, qid, timeout)
+        return await self._try_query(fut, transport, qid, timeout)
 
-    async def _try_query(self, fut, qid, timeout):
+    async def _try_query(self, fut, transport, qid, timeout):
         try:
             await asyncio.wait_for(fut, timeout)
             dnsr = fut.result()
             dnsr.id = qid
         except asyncio.TimeoutError:
             self.logger.debug('Request timed out')
+            transport.close()
             dnsr = None
         return dnsr
 
