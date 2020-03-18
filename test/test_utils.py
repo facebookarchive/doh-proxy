@@ -148,7 +148,7 @@ class TestDOHB64(unittest.TestCase):
         """ When providing an invalid input to base64.urlsafe_b64decode it
         should raise a binascii.Error exception.
         """
-        with self.assertRaisesRegex(binascii.Error, 'Invalid base64-encoded string'):
+        with self.assertRaisesRegex(binascii.Error, '^(Invalid base64-encoded string|Incorrect padding)'):
             utils.doh_b64_decode('_')
 
 
