@@ -67,7 +67,7 @@ setup(
     },
     install_requires=[
         'aioh2 >= 0.2.1',
-        'aiohttp >= 2.3.0',
+        'aiohttp >= 2.3.0', 'aiohttp < 4.0.0',
         'dnspython',
         'aiohttp_remotes >= 0.1.2'
     ],

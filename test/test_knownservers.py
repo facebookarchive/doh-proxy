@@ -19,6 +19,10 @@ from dohproxy import client_protocol, utils
 TEST_TIMEOUT = 3.0
 TRAVIS_TIMEOUT = 15.0
 
+METHOD_GET = 1
+METHOD_POST = 2
+METHOD_BOTH = 3
+
 
 def known_servers():
     '''
@@ -27,16 +31,23 @@ def known_servers():
     '''
     return [
         # Name, Domain, endpoint
-        ('Google', 'dns.google.com', '/experimental'),
-        ('Cloudflare', 'cloudflare-dns.com', '/dns-query'),
-        ('CleanBrowsing', 'doh.cleanbrowsing.org', '/doh/family-filter/'),
-        ('@chantra', 'dns.dnsoverhttps.net', '/dns-query'),
-        ('@jedisct1', 'doh.crypto.sx', '/dns-query'),
+        ('Google', 'dns.google', '/dns-query', METHOD_BOTH),
+        ('Cloudflare', 'cloudflare-dns.com', '/dns-query', METHOD_BOTH),
+        (
+            'CleanBrowsing', 'doh.cleanbrowsing.org',
+            '/doh/family-filter/', METHOD_BOTH
+        ),
+        # Currently off
+        # ('@chantra', 'dns.dnsoverhttps.net', '/dns-query', METHOD_BOTH),
+        ('@jedisct1', 'doh.crypto.sx', '/dns-query', METHOD_GET),
         # Timeout
-        # ('SecureDNS.eu', 'doh.securedns.eu', '/dns-query'),
-        ('BlahDNS.com JP', 'doh-jp.blahdns.com', '/dns-query'),
-        ('BlahDNS.com DE', 'doh-de.blahdns.com', '/dns-query'),
-        ('NekomimiRouter.com', 'dns.dns-over-https.com', '/dns-query'),
+        # ('SecureDNS.eu', 'doh.securedns.eu', '/dns-query', METHOD_BOTH),
+        ('BlahDNS.com JP', 'doh-jp.blahdns.com', '/dns-query', METHOD_BOTH),
+        ('BlahDNS.com DE', 'doh-de.blahdns.com', '/dns-query', METHOD_BOTH),
+        (
+            'NekomimiRouter.com', 'dns.dns-over-https.com',
+            '/dns-query', METHOD_BOTH
+        ),
     ]
 
 
@@ -70,7 +81,11 @@ class TestKnownServers(asynctest.TestCase):
                 self.addCleanup(patcher.stop)
 
     async def _test_servers(self, post=False):
-        for name, domain, uri in known_servers():
+        for name, domain, uri, methods in known_servers():
+            if post and not methods & METHOD_POST:
+                continue
+            if not post and not methods & METHOD_GET:
+                continue
             with self.subTest(name):
                 arglist = [
                     '--domain',
