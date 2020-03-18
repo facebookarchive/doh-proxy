@@ -23,6 +23,7 @@ METHOD_GET = 1
 METHOD_POST = 2
 METHOD_BOTH = 3
 
+
 def known_servers():
     '''
     List of servers taken from
@@ -32,7 +33,10 @@ def known_servers():
         # Name, Domain, endpoint
         ('Google', 'dns.google', '/dns-query', METHOD_BOTH),
         ('Cloudflare', 'cloudflare-dns.com', '/dns-query', METHOD_BOTH),
-        ('CleanBrowsing', 'doh.cleanbrowsing.org', '/doh/family-filter/', METHOD_BOTH),
+        (
+            'CleanBrowsing', 'doh.cleanbrowsing.org',
+            '/doh/family-filter/', METHOD_BOTH
+        ),
         # Currently off
         # ('@chantra', 'dns.dnsoverhttps.net', '/dns-query', METHOD_BOTH),
         ('@jedisct1', 'doh.crypto.sx', '/dns-query', METHOD_GET),
@@ -40,7 +44,10 @@ def known_servers():
         # ('SecureDNS.eu', 'doh.securedns.eu', '/dns-query', METHOD_BOTH),
         ('BlahDNS.com JP', 'doh-jp.blahdns.com', '/dns-query', METHOD_BOTH),
         ('BlahDNS.com DE', 'doh-de.blahdns.com', '/dns-query', METHOD_BOTH),
-        ('NekomimiRouter.com', 'dns.dns-over-https.com', '/dns-query', METHOD_BOTH),
+        (
+            'NekomimiRouter.com', 'dns.dns-over-https.com',
+            '/dns-query', METHOD_BOTH
+        ),
     ]
 
 
