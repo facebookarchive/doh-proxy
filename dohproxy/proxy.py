@@ -21,7 +21,7 @@ from dohproxy.server_protocol import (
 )
 
 
-from typing import List, Tuple
+from typing import List, Tuple, Pattern
 
 from h2.config import H2Configuration
 from h2.connection import H2Connection
@@ -113,7 +113,12 @@ class H2Protocol(asyncio.Protocol):
         # Handle the actual query
         path, params = utils.extract_path_params(headers[':path'])
 
-        if path != self.uri:
+        if isinstance(self.uri, Pattern):
+            path_matched = self.uri.search(path)
+        else:
+            path_matched = path == self.uri
+
+        if not path_matched:
             self.return_404(stream_id)
             return
 
