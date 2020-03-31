@@ -41,6 +41,7 @@ def parse_args():
 
 class H2Protocol(asyncio.Protocol):
     def __init__(self, upstream_resolver=None, upstream_port=None,
+                 request_modifier=None, response_modifier=None,
                  uri=None, logger=None, debug=False):
         config = H2Configuration(client_side=False, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
@@ -54,6 +55,8 @@ class H2Protocol(asyncio.Protocol):
         self.upstream_port = upstream_port
         self.time_stamp = 0
         self.uri = constants.DOH_URI if uri is None else uri
+        self.request_modifier = request_modifier
+        self.response_modifier = response_modifier
         assert upstream_resolver is not None, \
             'An upstream resolver must be provided'
         assert upstream_port is not None, \
@@ -148,6 +151,8 @@ class H2Protocol(asyncio.Protocol):
                 utils.dnsquery2log(dnsq)
             )
         )
+        if self.request_modifier:
+            self.request_modifier(self, clientip, path, headers, body, dnsq)
         self.time_stamp = time.time()
         asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
@@ -157,6 +162,9 @@ class H2Protocol(asyncio.Protocol):
         except KeyError:
             # Just return, we probably 405'd this already
             return
+
+        if self.response_modifier:
+            self.response_modifier(self, dnsr, dnsq)
 
         response_headers = [
             (':status', '200'),
