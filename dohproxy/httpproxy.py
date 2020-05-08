@@ -60,8 +60,6 @@ async def doh1handler(request):
     except DOHDNSException as e:
         return aiohttp.web.Response(status=400, body=e.body())
 
-    dnsq = dns.message.from_wire(body)
-
     clientip = request.transport.get_extra_info('peername')[0]
     request.app.logger.info('[HTTPS] {} (Original IP: {}) {}'.format(
         clientip, request.remote, utils.dnsquery2log(dnsq)))
