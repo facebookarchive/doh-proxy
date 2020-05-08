@@ -23,6 +23,24 @@ def parse_args():
         default='::1',
         help='The address the stub should listen on. Default: [%(default)s]'
     )
+    parser.add_argument(
+        '--passthrough-domains',
+        default='',
+        help='Comma-separated list of domains to send to '
+             '--passthrough-resolver. Default: [%(default)s]'
+    )
+    parser.add_argument(
+        '--passthrough-resolver',
+        default='::1',
+        help='Recursive resolver to send --passthrough-domains to. '
+             'Default: [%(default)s]',
+    )
+    parser.add_argument(
+        '--passthrough-port',
+        default=5553,
+        help='Recursive resolver port to send --passthrough-domains to. '
+             'Default: [%(default)s]',
+    )
 
     return parser.parse_args()
 

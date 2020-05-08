@@ -10,10 +10,12 @@
 import aioh2
 import asyncio
 import dns.message
+import dns.name
 import priority
 import urllib.parse
 
 from dohproxy import constants, utils
+from dohproxy.server_protocol import DNSClient
 
 
 class StubServerProtocol:
@@ -25,6 +27,14 @@ class StubServerProtocol:
         if logger is None:
             self.logger = utils.configure_logger('StubServerProtocol')
         self.client = None
+        self.passthrough_domains = []
+        passthrough_args = getattr(self.args, 'passthrough_domains', '')
+        for domain in passthrough_args.split(','):
+            if not domain:
+                continue
+            if not domain.endswith('.'):
+                domain += '.'
+            self.passthrough_domains.append(dns.name.Name(domain.split('.')))
 
     async def setup_client(self):
         # Open client connection
@@ -50,10 +60,20 @@ class StubServerProtocol:
     def connection_made(self, transport):
         self.transport = transport
 
+    def is_passthrough_query(self, dnsq):
+        for question in dnsq.question:
+            for domain in self.passthrough_domains:
+                if question.name.is_subdomain(domain):
+                    return True
+        return False
+
     def datagram_received(self, data, addr):
         dnsq = dns.message.from_wire(data)
 
-        asyncio.ensure_future(self.make_request(addr, dnsq))
+        if self.is_passthrough_query(dnsq):
+            asyncio.ensure_future(self.resolve(addr, dnsq))
+        else:
+            asyncio.ensure_future(self.make_request(addr, dnsq))
 
     def on_answer(self, addr, dnsr):
         self.transport.sendto(dnsr, addr)
@@ -145,3 +165,14 @@ class StubServerProtocol:
         # Read response trailers
         trailers = await client.recv_trailers(stream_id)
         self.logger.debug('Response trailers: {}'.format(trailers))
+
+    async def resolve(self, addr, dnsq):
+        qid = dnsq.id
+        dnsq.id = 0
+        dnsclient = DNSClient(self.args.passthrough_resolver,
+                              self.args.passthrough_port,
+                              logger=self.logger)
+        dnsr = await dnsclient.query(dnsq, addr)
+        dnsr.id = qid
+
+        return self.on_answer(addr, dnsr.to_wire())
