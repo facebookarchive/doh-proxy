@@ -9,6 +9,7 @@
 
 DOH_URI = '/dns-query'
 DOH_MEDIA_TYPE = 'application/dns-message'
+DOH_MAX_QUERY_SIZE = 65535  # RFC 8484, section 6
 DOH_DNS_PARAM = 'dns'
 DOH_H2_NPN_PROTOCOLS = ['h2']
 DOH_CIPHERS = 'ECDHE+AESGCM'

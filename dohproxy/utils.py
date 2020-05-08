@@ -132,26 +132,37 @@ def create_custom_ssl_context(
     return sslctx
 
 
-def extract_ct_body(params: Dict[str, List[str]]) -> Tuple[str, bytes]:
+def extract_ct_body(
+        params: Dict[str, List[str]],
+        max_query_size: int = constants.DOH_MAX_QUERY_SIZE
+) -> Tuple[str, bytes]:
     """ Extract the content type and body from a list of get parameters.
     :param params: A dictionary of key/value of parameters as provided by
         urllib.parse.parse_qs
+    :param max_query_size: limit size of query parameter
     :return: a tuple that contains a string and bytes, respectively ct and
         body.
     :raises: a DOHParamsException with an explanatory message.
     """
     ct = constants.DOH_MEDIA_TYPE
-    if constants.DOH_DNS_PARAM in params and \
-            len(params[constants.DOH_DNS_PARAM]):
-        try:
-            body = doh_b64_decode(
-                params[constants.DOH_DNS_PARAM][0])
-        except binascii.Error:
-            raise server_protocol.DOHParamsException(b'Invalid Body Parameter')
-        if not body:
-            raise server_protocol.DOHParamsException(b'Missing Body')
-    else:
+
+    # exactly one DOH_DNS_PARAM
+    dnsparams = params.get(constants.DOH_DNS_PARAM)
+    if not dnsparams:
         raise server_protocol.DOHParamsException(b'Missing Body Parameter')
+    if len(dnsparams) > 1:
+        raise server_protocol.DOHParamsException(b'Too Many Body Parameter')
+
+    # limit query length (ignores small rounding error)
+    if (len(dnsparams[0]) / 4) * 3 > max_query_size:
+        raise server_protocol.DOHParamsException(b'Body parameter too large')
+
+    try:
+        body = doh_b64_decode(dnsparams[0])
+    except binascii.Error:
+        raise server_protocol.DOHParamsException(b'Invalid Body Parameter')
+    if not body:
+        raise server_protocol.DOHParamsException(b'Missing Body')
 
     return ct, body
 

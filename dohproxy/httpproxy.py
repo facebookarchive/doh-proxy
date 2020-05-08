@@ -47,6 +47,11 @@ async def doh1handler(request):
             return aiohttp.web.Response(status=400, body=e.body())
     elif request.method == 'POST':
         body = await request.content.read()
+        # size without length indicator
+        if len(body) - 2 > constants.DOH_MAX_QUERY_SIZE:
+            return aiohttp.web.Response(
+                status=400, body=b'Size limit exceeded'
+            )
         ct = request.headers.get('content-type')
     else:
         return aiohttp.web.Response(status=501, body=b'Not Implemented')
