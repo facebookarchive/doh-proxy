@@ -272,7 +272,11 @@ def main():
     logger = utils.configure_logger('doh-proxy', args.level)
     ssl_ctx = utils.create_ssl_context(args, http2=True)
     loop = asyncio.get_event_loop()
-    for addr in args.listen_address:
+    if "all" in args.listen_address:
+        listen_addresses = utils.get_system_addresses()
+    else:
+        listen_addresses = args.listen_address
+    for addr in listen_addresses:
         coro = loop.create_server(
             lambda: H2Protocol(
                 upstream_resolver=args.upstream_resolver,

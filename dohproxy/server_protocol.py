@@ -165,17 +165,9 @@ class DNSClientProtocolTCP(DNSClientProtocol):
         self.transport.write(tcpmsg)
 
     def data_received(self, data):
-        self.buffer = self.buffer + data
-        if len(self.buffer) < 2:
-            return
-        msglen = struct.unpack('!H', self.buffer[0:2])[0]
-        while msglen + 2 <= len(self.buffer):
-            dnsr = dns.message.from_wire(self.buffer[2:msglen + 2])
-            self.receive_helper(dnsr)
-            self.buffer = self.buffer[msglen + 2:]
-            if len(self.buffer) < 2:
-                return
-            msglen = struct.unpack('!H', self.buffer[0:2])[0]
+        self.buffer = utils.handle_dns_tcp_data(
+            self.buffer + data, self.receive_helper
+        )
 
     def eof_received(self):
         if len(self.buffer) > 0:

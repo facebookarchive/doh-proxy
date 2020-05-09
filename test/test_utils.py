@@ -15,6 +15,10 @@ import tempfile
 import unittest
 import argparse
 
+try:
+    import netifaces
+except ImportError as e:
+    netifaces = e
 from unittest.mock import patch, MagicMock
 
 from dohproxy import constants
@@ -470,3 +474,58 @@ class TestSSLContext(unittest.TestCase):
             self.assertTrue(
                 self._CA_serial in
                 [crt['serialNumber'] for crt in sslctx.get_ca_certs()])
+
+
+@unittest.skipIf(
+    isinstance(netifaces, ImportError), "netifaces not installed"
+)
+class TestGetSystemAddresses(unittest.TestCase):
+    def test_get_system_addresses(self):
+        self.assertIn('127.0.0.1', utils.get_system_addresses())
+
+
+class TestHandleDNSTCPData(unittest.TestCase):
+    def setUp(self):
+        self._data = (
+            b'\x00/\x00\x00\x01\x00\x00\x01\x00\x00\x00\x00\x00\x00'
+            b'\x11connectivitycheck\x07gstatic\x03com\x00\x00\x1c\x00\x01'
+        )
+        self._cb_data = []
+
+    def _cb(self, data):
+        self._cb_data.append(data)
+
+    def test_short(self):
+        # Short message (no length check), returns itself
+        res = utils.handle_dns_tcp_data(self._data[0:1], self._cb)
+        self.assertEqual(res, self._data[0:1])
+        self.assertEqual(self._cb_data, [])
+
+    def test_partial(self):
+        # Partial message (no cb), returns itself
+        res = utils.handle_dns_tcp_data(self._data[0:10], self._cb)
+        self.assertEqual(res, self._data[0:10])
+        self.assertEqual(self._cb_data, [])
+
+    def test_complete(self):
+        # Complete message (calls cb once)
+        res = utils.handle_dns_tcp_data(self._data, self._cb)
+        self.assertEqual(res, b'')
+        self.assertIsInstance(self._cb_data[0], dns.message.Message)
+
+    def test_complete_plus_partial(self):
+        # Complete message (calls cb once) + partial message
+        res = utils.handle_dns_tcp_data(
+            self._data + self._data[0:10], self._cb
+        )
+        self.assertEqual(res, self._data[0:10])
+        self.assertIsInstance(self._cb_data[0], dns.message.Message)
+
+    def test_complete_multiple(self):
+        # Muliple complete messages will call the cb multiple times
+        res = utils.handle_dns_tcp_data(
+            self._data + self._data, self._cb
+        )
+        self.assertEqual(res, b'')
+        self.assertIsInstance(self._cb_data[0], dns.message.Message)
+        self.assertIsInstance(self._cb_data[1], dns.message.Message)
