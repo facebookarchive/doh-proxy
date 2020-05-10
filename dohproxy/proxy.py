@@ -41,7 +41,7 @@ def parse_args():
 
 class H2Protocol(asyncio.Protocol):
     def __init__(self, upstream_resolver=None, upstream_port=None,
-                 uri=None, logger=None, debug=False):
+                 uri=None, logger=None, debug=False, ecs=False):
         config = H2Configuration(client_side=False, header_encoding='utf-8')
         self.conn = H2Connection(config=config)
         self.logger = logger
@@ -49,6 +49,7 @@ class H2Protocol(asyncio.Protocol):
             self.logger = utils.configure_logger('doh-proxy', 'DEBUG')
         self.transport = None
         self.debug = debug
+        self.ecs = ecs
         self.stream_data = {}
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
@@ -195,7 +196,7 @@ class H2Protocol(asyncio.Protocol):
         clientip = utils.get_client_ip(self.transport)
         dnsclient = DNSClient(self.upstream_resolver, self.upstream_port,
                               logger=self.logger)
-        dnsr = await dnsclient.query(dnsq, clientip)
+        dnsr = await dnsclient.query(dnsq, clientip, ecs=self.ecs)
 
         if dnsr is None:
             self.on_answer(stream_id, dnsq=dnsq)
@@ -283,7 +284,8 @@ def main():
                 upstream_port=args.upstream_port,
                 uri=args.uri,
                 logger=logger,
-                debug=args.debug),
+                debug=args.debug,
+                ecs=args.ecs),
             host=addr,
             port=args.port,
             ssl=ssl_ctx)

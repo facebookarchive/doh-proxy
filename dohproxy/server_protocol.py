@@ -7,6 +7,7 @@
 # LICENSE file in the root directory of this source tree.
 #
 import asyncio
+import dns.edns
 import dns.entropy
 import dns.message
 import struct
@@ -42,10 +43,24 @@ class DNSClient():
         self.logger = logger
         self.transport = None
 
-    async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
-        dnsr = await self.query_udp(dnsq, clientip, timeout=timeout)
+    async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT,
+                    ecs=False):
+        # (Potentially) modified copy of dnsq
+        dnsq_mod = dns.message.from_wire(dnsq.to_wire())
+        we_set_ecs = False
+        if ecs:
+            we_set_ecs = utils.set_dns_ecs(dnsq_mod, clientip)
+
+        dnsr = await self.query_udp(dnsq_mod, clientip, timeout=timeout)
         if dnsr is None or (dnsr.flags & dns.flags.TC):
-            dnsr = await self.query_tcp(dnsq, clientip, timeout=timeout)
+            dnsr = await self.query_tcp(dnsq_mod, clientip, timeout=timeout)
+
+        if dnsr is not None and we_set_ecs:
+            for option in dnsr.options:
+                if isinstance(option, dns.edns.ECSOption):
+                    dnsr.options.remove(option)
+            dnsr.edns = dnsq.edns
+
         return dnsr
 
     async def query_udp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):

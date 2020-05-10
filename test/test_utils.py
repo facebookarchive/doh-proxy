@@ -529,3 +529,19 @@ class TestHandleDNSTCPData(unittest.TestCase):
         self.assertEqual(res, b'')
         self.assertIsInstance(self._cb_data[0], dns.message.Message)
         self.assertIsInstance(self._cb_data[1], dns.message.Message)
+
+
+class TestDNSECS(unittest.TestCase):
+    def test_set_dns_ecs_ipv4(self):
+        dnsq = dns.message.Message()
+        utils.set_dns_ecs(dnsq, '10.0.0.242')
+        self.assertEqual(dnsq.edns, 0)
+        self.assertEqual(dnsq.options[0].address, '10.0.0.0')
+        self.assertEqual(dnsq.options[0].srclen, 24)
+
+    def test_set_dns_ecs_ipv6(self):
+        dnsq = dns.message.Message()
+        utils.set_dns_ecs(dnsq, '2000::aa')
+        self.assertEqual(dnsq.edns, 0)
+        self.assertEqual(dnsq.options[0].address, '2000::')
+        self.assertEqual(dnsq.options[0].srclen, 56)
