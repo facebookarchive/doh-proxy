@@ -141,7 +141,7 @@ class H2Protocol(asyncio.Protocol):
             self.return_400(stream_id, body=e.body())
             return
 
-        clientip = self.transport.get_extra_info('peername')[0]
+        clientip = utils.get_client_ip(self.transport)
         self.logger.info(
             '[HTTPS] {} {}'.format(
                 clientip,
@@ -172,7 +172,7 @@ class H2Protocol(asyncio.Protocol):
                 ('cache-control', 'max-age={}'.format(ttl))
             )
 
-        clientip = self.transport.get_extra_info('peername')[0]
+        clientip = utils.get_client_ip(self.transport)
         interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
             '[HTTPS] {} {} {}ms'.format(
@@ -192,7 +192,7 @@ class H2Protocol(asyncio.Protocol):
         self.transport.write(self.conn.data_to_send())
 
     async def resolve(self, dnsq, stream_id):
-        clientip = self.transport.get_extra_info('peername')[0]
+        clientip = utils.get_client_ip(self.transport)
         dnsclient = DNSClient(self.upstream_resolver, self.upstream_port,
                               logger=self.logger)
         dnsr = await dnsclient.query(dnsq, clientip)
@@ -259,7 +259,7 @@ class H2Protocol(asyncio.Protocol):
             stream_data = self.stream_data[stream_id]
         except KeyError:
             # Unknown stream, log and ignore (the stream may already be ended)
-            clientip = self.transport.get_extra_info('peername')[0]
+            clientip = utils.get_client_ip(self.transport)
             self.logger.info(
                 '[HTTPS] %s Unknown stream %d', clientip, stream_id
             )
