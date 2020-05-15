@@ -60,7 +60,7 @@ async def doh1handler(request):
     except DOHDNSException as e:
         return aiohttp.web.Response(status=400, body=e.body())
 
-    clientip = request.transport.get_extra_info('peername')[0]
+    clientip = utils.get_client_ip(request.transport)
     request.app.logger.info('[HTTPS] {} (Original IP: {}) {}'.format(
         clientip, request.remote, utils.dnsquery2log(dnsq)))
     return await request.app.resolve(request, dnsq)
@@ -93,7 +93,7 @@ class DOHApplication(aiohttp.web.Application):
             ttl = min(r.ttl for r in dnsr.answer)
             headers['cache-control'] = 'max-age={}'.format(ttl)
 
-        clientip = request.transport.get_extra_info('peername')[0]
+        clientip = utils.get_client_ip(request.transport)
         interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info('[HTTPS] {} (Original IP: {}) {} {}ms'.format(
             clientip, request.remote, utils.dnsans2log(dnsr), interval))
