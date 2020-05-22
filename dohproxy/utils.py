@@ -15,6 +15,7 @@ import dns.message
 import dns.rcode
 import logging
 import ssl
+import sys
 import urllib.parse
 
 from typing import Dict, List, Tuple, Optional
@@ -349,7 +350,12 @@ def configure_logger(name='', level='DEBUG'):
     :param level: (optional) level of logging, default: DEBUG.
     :return: a logger instance.
     """
-    logging.basicConfig(format='%(asctime)s: %(levelname)8s: %(message)s')
+    log_format = '%(name)s/%(levelname)s: %(message)s'
+    if sys.stdout.isatty():
+        # If this is a TTY (e.g. not running in a service manager),
+        # prepend the time to log messages
+        log_format = '%(asctime)s: ' + log_format
+    logging.basicConfig(format=log_format)
     logger = logging.getLogger(name)
     level_name = level.upper()
     level = getattr(logging, level_name, None)
