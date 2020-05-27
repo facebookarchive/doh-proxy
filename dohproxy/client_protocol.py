@@ -11,6 +11,7 @@ import aioh2
 import asyncio
 import dns.message
 import priority
+import struct
 import urllib.parse
 
 from dohproxy import constants, utils
@@ -18,15 +19,27 @@ from dohproxy import constants, utils
 
 class StubServerProtocol:
 
-    def __init__(self, args, logger=None):
+    def __init__(self, args, logger=None, client_store=None):
         self.logger = logger
         self.args = args
         self._lock = asyncio.Lock()
         if logger is None:
             self.logger = utils.configure_logger('StubServerProtocol')
-        self.client = None
 
-    async def setup_client(self):
+        # The client is wrapped in a mutable dictionary, so it may be shared
+        # across multiple contexts if passed from higher in the chain.
+        if client_store is None:
+            self.client_store = {'client': None}
+        else:
+            self.client_store = client_store
+
+    async def get_client(self, force_new=False):
+        if force_new:
+            self.client_store['client'] = None
+        if self.client_store['client'] is not None:
+            if self.client_store['client']._conn is not None:
+                return self.client_store['client']
+
         # Open client connection
         self.logger.debug('Opening connection to {}'.format(self.args.domain))
         sslctx = utils.create_custom_ssl_context(
@@ -35,28 +48,27 @@ class StubServerProtocol:
         )
         remote_addr = self.args.remote_address \
             if self.args.remote_address else self.args.domain
-        self.client = await aioh2.open_connection(
+        client = await aioh2.open_connection(
             remote_addr,
             self.args.port,
             functional_timeout=0.1,
             ssl=sslctx,
             server_hostname=self.args.domain)
-        rtt = await self.client.wait_functional()
+        rtt = await client.wait_functional()
         if rtt:
             self.logger.debug('Round-trip time: %.1fms' % (rtt * 1000))
 
-        return self.client
+        self.client_store['client'] = client
+        return client
 
     def connection_made(self, transport):
-        self.transport = transport
+        pass
 
-    def datagram_received(self, data, addr):
-        dnsq = dns.message.from_wire(data)
+    def connection_lost(self, exc):
+        pass
 
-        asyncio.ensure_future(self.make_request(addr, dnsq))
-
-    def on_answer(self, addr, dnsr):
-        self.transport.sendto(dnsr, addr)
+    def on_answer(self, addr, msg):
+        pass
 
     def on_message_received(self, stream_id, msg):
         """
@@ -88,9 +100,7 @@ class StubServerProtocol:
         # FIXME: maybe aioh2 should allow registering to connection_lost event
         # so we can find out when the connection get disconnected.
         with await self._lock:
-            if self.client is None or self.client._conn is None:
-                await self.setup_client()
-            client = self.client
+            client = await self.get_client()
 
         headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri
@@ -118,8 +128,7 @@ class StubServerProtocol:
         try:
             stream_id = await self.on_start_request(client, headers, not body)
         except priority.priority.TooManyStreamsError:
-            await self.setup_client()
-            client = self.client
+            client = await self.get_client(force_new=True)
             stream_id = await self.on_start_request(client, headers, not body)
         self.logger.debug(
             'Stream ID: {} / Total streams: {}'.format(
@@ -145,3 +154,36 @@ class StubServerProtocol:
         # Read response trailers
         trailers = await client.recv_trailers(stream_id)
         self.logger.debug('Response trailers: {}'.format(trailers))
+
+
+class StubServerProtocolUDP(StubServerProtocol):
+    def connection_made(self, transport):
+        self.transport = transport
+
+    def datagram_received(self, data, addr):
+        dnsq = dns.message.from_wire(data)
+        asyncio.ensure_future(self.make_request(addr, dnsq))
+
+    def on_answer(self, addr, msg):
+        self.transport.sendto(msg, addr)
+
+
+class StubServerProtocolTCP(StubServerProtocol):
+    def connection_made(self, transport):
+        self.transport = transport
+        self.addr = transport.get_extra_info('peername')
+        self.buffer = b''
+
+    def data_received(self, data):
+        self.buffer = utils.handle_dns_tcp_data(
+            self.buffer + data, self.receive_helper
+        )
+
+    def receive_helper(self, dnsq):
+        asyncio.ensure_future(self.make_request(self.addr, dnsq))
+
+    def on_answer(self, addr, msg):
+        self.transport.write(struct.pack('!H', len(msg)) + msg)
+
+    def eof_received(self):
+        self.transport.close()

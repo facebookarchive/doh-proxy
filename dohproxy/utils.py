@@ -15,9 +15,15 @@ import dns.message
 import dns.rcode
 import logging
 import ssl
+import struct
 import sys
 import urllib.parse
 
+try:
+    import netifaces
+except ImportError as e:
+    # Optional module
+    netifaces = e
 from typing import Dict, List, Tuple, Optional
 
 from dohproxy import constants, server_protocol, __version__
@@ -291,7 +297,8 @@ def proxy_parser_base(*, port: int,
         default=['::1'],
         nargs='+',
         help='A list of addresses the proxy should listen on. '
-             'Default: [%(default)s]'
+             '"all" for all detected interfaces and addresses (netifaces '
+             'required). Default: [%(default)s]'
     )
     parser.add_argument(
         '--port', '--listen-port',
@@ -363,3 +370,45 @@ def configure_logger(name='', level='DEBUG'):
         raise Exception("Invalid log level name : %s" % level_name)
     logger.setLevel(level)
     return logger
+
+
+def get_system_addresses():
+    """Get all IPv4/IPv6 addresses listening on the system.
+    :return: List of addresses.
+    """
+    if isinstance(netifaces, ImportError):
+        raise netifaces
+
+    addresses = set()
+    for iface in netifaces.interfaces():
+        iface_addresses = netifaces.ifaddresses(iface)
+        for family in (netifaces.AF_INET, netifaces.AF_INET6):
+            if family not in iface_addresses:
+                continue
+            addresses.update([
+                f["addr"]
+                for f in iface_addresses[family]
+                if "addr" in f
+            ])
+    return list(addresses)
+
+
+def handle_dns_tcp_data(data, cb):
+    """Handle TCP data_received DNS data.
+    When enough data is received to assemble a DNS message, a
+    callback is called and the remaining data (if any) is returned.
+    :param data: Incoming bytes data.
+    :param cb: Callback to call when a full TCP DNS message is received.
+    :return: Any remaining bytes not fed to the callback.
+    """
+    if len(data) < 2:
+        return data
+    msglen = struct.unpack('!H', data[0:2])[0]
+    while msglen + 2 <= len(data):
+        dnsq = dns.message.from_wire(data[2:msglen + 2])
+        cb(dnsq)
+        data = data[msglen + 2:]
+        if len(data) < 2:
+            return data
+        msglen = struct.unpack('!H', data[0:2])[0]
+    return data

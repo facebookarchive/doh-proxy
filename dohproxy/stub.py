@@ -11,6 +11,10 @@ import asyncio
 from dohproxy import client_protocol, utils
 
 
+# CLIENT_STORE['client'] is shared by all handlers.
+CLIENT_STORE = {'client': None}
+
+
 def parse_args():
     parser = utils.client_parser_base()
     parser.add_argument(
@@ -20,8 +24,11 @@ def parse_args():
     )
     parser.add_argument(
         '--listen-address',
-        default='::1',
-        help='The address the stub should listen on. Default: [%(default)s]'
+        default=['::1'],
+        nargs='+',
+        help='A list of addresses the proxy should listen on. '
+             '"all" for all detected interfaces and addresses (netifaces '
+             'required). Default: [%(default)s]'
     )
 
     return parser.parse_args()
@@ -31,20 +38,40 @@ def main():
     args = parse_args()
     logger = utils.configure_logger('doh-stub', args.level)
     loop = asyncio.get_event_loop()
-    logger.info("Starting UDP server")
-    # One protocol instance will be created to serve all client requests
-    listen = loop.create_datagram_endpoint(
-        lambda: client_protocol.StubServerProtocol(args, logger=logger),
-        local_addr=(args.listen_address, args.listen_port))
-    transport, proto = loop.run_until_complete(listen)
-    loop.run_until_complete(proto.setup_client())
+
+    if "all" in args.listen_address:
+        listen_addresses = utils.get_system_addresses()
+    else:
+        listen_addresses = args.listen_address
+
+    transports = []
+    for address in listen_addresses:
+        logger.info("Starting UDP server: {}".format(address))
+        # One protocol instance will be created to serve all client requests
+        # for this UDP listen address
+        cls = client_protocol.StubServerProtocolUDP
+        listen = loop.create_datagram_endpoint(
+            lambda: cls(args, logger=logger, client_store=CLIENT_STORE),
+            local_addr=(address, args.listen_port))
+        transport, proto = loop.run_until_complete(listen)
+        transports.append(transport)
+        loop.run_until_complete(proto.get_client())
+
+        logger.info("Starting TCP server: {}".format(address))
+        cls = client_protocol.StubServerProtocolTCP
+        listen_tcp = loop.create_server(
+            lambda: cls(args, logger=logger, client_store=CLIENT_STORE),
+            host=address, port=args.listen_port)
+        server_tcp = loop.run_until_complete(listen_tcp)
+        transports.append(server_tcp)
 
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         pass
 
-    transport.close()
+    for transport in transports:
+        transport.close()
     loop.close()
 
 
