@@ -10,9 +10,11 @@ import argparse
 import asyncio
 import binascii
 import base64
+import dns.edns
 import dns.exception
 import dns.message
 import dns.rcode
+import ipaddress
 import logging
 import ssl
 import struct
@@ -348,6 +350,11 @@ def proxy_parser_base(*, port: int,
         action='version',
         version='%(prog)s {}'.format(__version__),
     )
+    parser.add_argument(
+        '--ecs',
+        action='store_true',
+        help='Enable EDNS Client Subnet (ECS)'
+    )
     return parser
 
 
@@ -412,3 +419,36 @@ def handle_dns_tcp_data(data, cb):
             return data
         msglen = struct.unpack('!H', data[0:2])[0]
     return data
+
+
+def set_dns_ecs(dnsq, ip):
+    """Sets RFC 7871 EDNS Client Subnet (ECS) option in a DNS packet.
+    An existing ECS option will not be overwritten if present.
+    :param dnsq: DNS packet.
+    :param ip: IP address. String or ipaddress object.
+    :return: Whether ECS was set (bool)
+    """
+    options = []
+    for option in dnsq.options:
+        if isinstance(option, dns.edns.ECSOption):
+            return False
+        options.append(option)
+
+    if not isinstance(
+        ip,
+        (ipaddress.IPv4Address, ipaddress.IPv6Address)
+    ):
+        ip = ipaddress.ip_address(ip)
+    ip_supernet_bits = 56 if ip.version == 6 else 24
+    ip_supernet = ipaddress.ip_network(ip).supernet(
+        new_prefix=ip_supernet_bits,
+    )
+
+    options.append(dns.edns.ECSOption(
+        address=ip_supernet.network_address.compressed,
+        srclen=ip_supernet_bits,
+    ))
+    dnsq.edns = 0  # 0 == True
+    dnsq.options = options
+
+    return True

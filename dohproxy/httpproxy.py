@@ -71,12 +71,15 @@ class DOHApplication(aiohttp.web.Application):
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
 
+    def set_ecs(self, ecs):
+        self.ecs = ecs
+
     async def resolve(self, request, dnsq):
         self.time_stamp = time.time()
         clientip = request.remote
         dnsclient = DNSClient(self.upstream_resolver, self.upstream_port,
                               logger=self.logger)
-        dnsr = await dnsclient.query(dnsq, clientip)
+        dnsr = await dnsclient.query(dnsq, clientip, ecs=self.ecs)
 
         if dnsr is None:
             return self.on_answer(request, dnsq=dnsq)
@@ -128,6 +131,7 @@ def get_app(args):
     logger = utils.configure_logger('doh-httpproxy', args.level)
     app = DOHApplication(logger=logger, debug=args.debug)
     app.set_upstream_resolver(args.upstream_resolver, args.upstream_port)
+    app.set_ecs(args.ecs)
     app.router.add_get(args.uri, doh1handler)
     app.router.add_post(args.uri, doh1handler)
 
