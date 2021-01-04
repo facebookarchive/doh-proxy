@@ -102,7 +102,6 @@ class StubServerProtocol:
         with await self._lock:
             client = await self.get_client()
 
-        headers = {'Accept': constants.DOH_MEDIA_TYPE}
         path = self.args.uri
         qid = dnsq.id
         dnsq.id = 0
@@ -112,6 +111,7 @@ class StubServerProtocol:
             (':authority', self.args.domain),
             (':method', self.args.post and 'POST' or 'GET'),
             (':scheme', 'https'),
+            ('Accept', constants.DOH_MEDIA_TYPE),
         ]
         if self.args.post:
             headers.append(('content-type', constants.DOH_MEDIA_TYPE))
