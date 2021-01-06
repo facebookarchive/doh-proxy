@@ -23,35 +23,29 @@ class Client(client_protocol.StubServerProtocol):
 def parse_args():
     parser = utils.client_parser_base()
     parser.add_argument(
-        '--qname',
-        default='example.com',
-        help='Name to query for. Default [%(default)s]',
+        "--qname",
+        default="example.com",
+        help="Name to query for. Default [%(default)s]",
     )
     parser.add_argument(
-        '--qtype',
-        default='AAAA',
-        help='Type of query. Default [%(default)s]',
+        "--qtype", default="AAAA", help="Type of query. Default [%(default)s]",
     )
     parser.add_argument(
-        '--dnssec',
-        action='store_true',
-        help='Enable DNSSEC validation.'
+        "--dnssec", action="store_true", help="Enable DNSSEC validation."
     )
     return parser.parse_args()
 
 
 def build_query(args):
     dnsq = dns.message.make_query(
-        qname=args.qname,
-        rdtype=args.qtype,
-        want_dnssec=args.dnssec,
+        qname=args.qname, rdtype=args.qtype, want_dnssec=args.dnssec,
     )
     dnsq.id = 0
     return dnsq
 
 
 def main_sync(args):
-    logger = utils.configure_logger('doh-client', level=args.level)
+    logger = utils.configure_logger("doh-client", level=args.level)
     client = Client(args=args, logger=logger)
 
     loop = asyncio.get_event_loop()
@@ -63,5 +57,5 @@ def main():
     main_sync(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

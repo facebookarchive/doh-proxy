@@ -25,37 +25,28 @@ METHOD_BOTH = 3
 
 
 def known_servers():
-    '''
+    """
     List of servers taken from
     https://github.com/curl/curl/wiki/DNS-over-HTTPS#publicly-available-servers
-    '''
+    """
     return [
         # Name, Domain, endpoint
-        ('Google', 'dns.google', '/dns-query', METHOD_BOTH),
-        ('Cloudflare', 'cloudflare-dns.com', '/dns-query', METHOD_BOTH),
-        (
-            'CleanBrowsing', 'doh.cleanbrowsing.org',
-            '/doh/family-filter/', METHOD_BOTH
-        ),
+        ("Google", "dns.google", "/dns-query", METHOD_BOTH),
+        ("Cloudflare", "cloudflare-dns.com", "/dns-query", METHOD_BOTH),
+        ("CleanBrowsing", "doh.cleanbrowsing.org", "/doh/family-filter/", METHOD_BOTH),
         # Currently off
         # ('@chantra', 'dns.dnsoverhttps.net', '/dns-query', METHOD_BOTH),
-        ('@jedisct1', 'doh.crypto.sx', '/dns-query', METHOD_GET),
+        ("@jedisct1", "doh.crypto.sx", "/dns-query", METHOD_GET),
         # Timeout
         # ('SecureDNS.eu', 'doh.securedns.eu', '/dns-query', METHOD_BOTH),
-        ('BlahDNS.com JP', 'doh-jp.blahdns.com', '/dns-query', METHOD_BOTH),
-        ('BlahDNS.com DE', 'doh-de.blahdns.com', '/dns-query', METHOD_BOTH),
-        (
-            'NekomimiRouter.com', 'dns.dns-over-https.com',
-            '/dns-query', METHOD_BOTH
-        ),
+        ("BlahDNS.com JP", "doh-jp.blahdns.com", "/dns-query", METHOD_BOTH),
+        ("BlahDNS.com DE", "doh-de.blahdns.com", "/dns-query", METHOD_BOTH),
+        ("NekomimiRouter.com", "dns.dns-over-https.com", "/dns-query", METHOD_BOTH),
     ]
 
 
 def build_query(qname, qtype):
-    dnsq = dns.message.make_query(
-        qname=qname,
-        rdtype=qtype,
-    )
+    dnsq = dns.message.make_query(qname=qname, rdtype=qtype,)
     dnsq.id = 0
     return dnsq
 
@@ -73,10 +64,10 @@ class TestKnownServers(asynctest.TestCase):
         # ALPN requires >=openssl-1.0.2
         # NPN requires >=openssl-1.0.1
         self.test_timeout = TEST_TIMEOUT
-        if os.getenv('TRAVIS'):
+        if os.getenv("TRAVIS"):
             self.test_timeout = TRAVIS_TIMEOUT
-            for fn in ['set_alpn_protocols']:
-                patcher = unittest.mock.patch('ssl.SSLContext.{0}'.format(fn))
+            for fn in ["set_alpn_protocols"]:
+                patcher = unittest.mock.patch("ssl.SSLContext.{0}".format(fn))
                 patcher.start()
                 self.addCleanup(patcher.stop)
 
@@ -88,19 +79,18 @@ class TestKnownServers(asynctest.TestCase):
                 continue
             with self.subTest(name):
                 arglist = [
-                    '--domain',
+                    "--domain",
                     domain,
-                    '--uri',
+                    "--uri",
                     uri,
                 ]
                 if post:
-                    arglist.append('--post')
+                    arglist.append("--post")
                 parser = utils.client_parser_base()
                 args = parser.parse_args(arglist)
-                logger = utils.configure_logger('doh-integrationtest')
+                logger = utils.configure_logger("doh-integrationtest")
                 c = Client(args=args, logger=logger)
-                fut = c.make_request(None, build_query(
-                    qname=domain, qtype="A"))
+                fut = c.make_request(None, build_query(qname=domain, qtype="A"))
                 try:
                     await asyncio.wait_for(fut, self.test_timeout)
                 except asyncio.TimeoutError:

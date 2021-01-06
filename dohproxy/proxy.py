@@ -30,7 +30,7 @@ from h2.events import (
 )
 from h2.exceptions import ProtocolError
 
-RequestData = collections.namedtuple('RequestData', ['headers', 'data'])
+RequestData = collections.namedtuple("RequestData", ["headers", "data"])
 
 
 def parse_args():
@@ -39,13 +39,20 @@ def parse_args():
 
 
 class H2Protocol(asyncio.Protocol):
-    def __init__(self, upstream_resolver=None, upstream_port=None,
-                 uri=None, logger=None, debug=False, ecs=False):
-        config = H2Configuration(client_side=False, header_encoding='utf-8')
+    def __init__(
+        self,
+        upstream_resolver=None,
+        upstream_port=None,
+        uri=None,
+        logger=None,
+        debug=False,
+        ecs=False,
+    ):
+        config = H2Configuration(client_side=False, header_encoding="utf-8")
         self.conn = H2Connection(config=config)
         self.logger = logger
         if logger is None:
-            self.logger = utils.configure_logger('doh-proxy', 'DEBUG')
+            self.logger = utils.configure_logger("doh-proxy", "DEBUG")
         self.transport = None
         self.debug = debug
         self.ecs = ecs
@@ -54,10 +61,8 @@ class H2Protocol(asyncio.Protocol):
         self.upstream_port = upstream_port
         self.time_stamp = 0
         self.uri = constants.DOH_URI if uri is None else uri
-        assert upstream_resolver is not None, \
-            'An upstream resolver must be provided'
-        assert upstream_port is not None, \
-            'An upstream resolver port must be provided'
+        assert upstream_resolver is not None, "An upstream resolver must be provided"
+        assert upstream_port is not None, "An upstream resolver port must be provided"
 
     def connection_made(self, transport: asyncio.Transport):  # type: ignore
         self.transport = transport
@@ -86,10 +91,10 @@ class H2Protocol(asyncio.Protocol):
 
     def request_received(self, headers: List[Tuple[str, str]], stream_id: int):
         _headers = collections.OrderedDict(headers)
-        method = _headers[':method']
+        method = _headers[":method"]
 
         # We only support GET and POST.
-        if method not in ['GET', 'POST', 'HEAD']:
+        if method not in ["GET", "POST", "HEAD"]:
             self.return_501(stream_id)
             return
 
@@ -108,24 +113,24 @@ class H2Protocol(asyncio.Protocol):
             return
 
         headers = request_data.headers
-        method = request_data.headers[':method']
+        method = request_data.headers[":method"]
 
         # Handle the actual query
-        path, params = utils.extract_path_params(headers[':path'])
+        path, params = utils.extract_path_params(headers[":path"])
 
         if path != self.uri:
             self.return_404(stream_id)
             return
 
-        if method in ['GET', 'HEAD']:
+        if method in ["GET", "HEAD"]:
             try:
                 ct, body = utils.extract_ct_body(params)
             except DOHParamsException as e:
                 self.return_400(stream_id, body=e.body())
                 return
-        elif method == 'POST':
+        elif method == "POST":
             body = request_data.data.getvalue()
-            ct = headers.get('content-type')
+            ct = headers.get("content-type")
         else:
             self.return_501(stream_id)
             return
@@ -142,12 +147,7 @@ class H2Protocol(asyncio.Protocol):
             return
 
         clientip = utils.get_client_ip(self.transport)
-        self.logger.info(
-            '[HTTPS] {} {}'.format(
-                clientip,
-                utils.dnsquery2log(dnsq)
-            )
-        )
+        self.logger.info("[HTTPS] {} {}".format(clientip, utils.dnsquery2log(dnsq)))
         self.time_stamp = time.time()
         asyncio.ensure_future(self.resolve(dnsq, stream_id))
 
@@ -159,33 +159,27 @@ class H2Protocol(asyncio.Protocol):
             return
 
         response_headers = [
-            (':status', '200'),
-            ('content-type', constants.DOH_MEDIA_TYPE),
-            ('server', 'asyncio-h2'),
+            (":status", "200"),
+            ("content-type", constants.DOH_MEDIA_TYPE),
+            ("server", "asyncio-h2"),
         ]
         if dnsr is None:
             dnsr = dns.message.make_response(dnsq)
             dnsr.set_rcode(dns.rcode.SERVFAIL)
         elif len(dnsr.answer):
             ttl = min(r.ttl for r in dnsr.answer)
-            response_headers.append(
-                ('cache-control', 'max-age={}'.format(ttl))
-            )
+            response_headers.append(("cache-control", "max-age={}".format(ttl)))
 
         clientip = utils.get_client_ip(self.transport)
         interval = int((time.time() - self.time_stamp) * 1000)
         self.logger.info(
-            '[HTTPS] {} {} {}ms'.format(
-                clientip,
-                utils.dnsans2log(dnsr),
-                interval
-            )
+            "[HTTPS] {} {} {}ms".format(clientip, utils.dnsans2log(dnsr), interval)
         )
-        if request_data.headers[':method'] == 'HEAD':
-            body = b''
+        if request_data.headers[":method"] == "HEAD":
+            body = b""
         else:
             body = dnsr.to_wire()
-        response_headers.append(('content-length', str(len(body))))
+        response_headers.append(("content-length", str(len(body))))
 
         self.conn.send_headers(stream_id, response_headers)
         self.conn.send_data(stream_id, body, end_stream=True)
@@ -193,8 +187,9 @@ class H2Protocol(asyncio.Protocol):
 
     async def resolve(self, dnsq, stream_id):
         clientip = utils.get_client_ip(self.transport)
-        dnsclient = DNSClient(self.upstream_resolver, self.upstream_port,
-                              logger=self.logger)
+        dnsclient = DNSClient(
+            self.upstream_resolver, self.upstream_port, logger=self.logger
+        )
         dnsr = await dnsclient.query(dnsq, clientip, ecs=self.ecs)
 
         if dnsr is None:
@@ -202,25 +197,25 @@ class H2Protocol(asyncio.Protocol):
         else:
             self.on_answer(stream_id, dnsr=dnsr)
 
-    def return_XXX(self, stream_id: int, status: int, body: bytes = b''):
+    def return_XXX(self, stream_id: int, status: int, body: bytes = b""):
         """
         Wrapper to return a status code and some optional content.
         """
         response_headers = (
-            (':status', str(status)),
-            ('content-length', str(len(body))),
-            ('server', 'asyncio-h2'),
+            (":status", str(status)),
+            ("content-length", str(len(body))),
+            ("server", "asyncio-h2"),
         )
         self.conn.send_headers(stream_id, response_headers)
         self.conn.send_data(stream_id, body, end_stream=True)
 
-    def return_400(self, stream_id: int, body: bytes = b''):
+    def return_400(self, stream_id: int, body: bytes = b""):
         """
         We don't support the given PATH, so we want to return a 403 response.
         """
         self.return_XXX(stream_id, 400, body)
 
-    def return_403(self, stream_id: int, body: bytes = b''):
+    def return_403(self, stream_id: int, body: bytes = b""):
         """
         We don't support the given PATH, so we want to return a 403 response.
         """
@@ -230,7 +225,7 @@ class H2Protocol(asyncio.Protocol):
         """
         We don't support the given PATH, so we want to return a 403 response.
         """
-        self.return_XXX(stream_id, 404, body=b'Wrong path')
+        self.return_XXX(stream_id, 404, body=b"Wrong path")
 
     def return_405(self, stream_id: int):
         """
@@ -242,13 +237,13 @@ class H2Protocol(asyncio.Protocol):
         """
         We don't support the given media, so we want to return a 415 response.
         """
-        self.return_XXX(stream_id, 415, body=b'Unsupported content type')
+        self.return_XXX(stream_id, 415, body=b"Unsupported content type")
 
     def return_501(self, stream_id: int):
         """
         We don't support the given method.
         """
-        self.return_XXX(stream_id, 501, body=b'Not Implemented')
+        self.return_XXX(stream_id, 501, body=b"Not Implemented")
 
     def receive_data(self, data: bytes, stream_id: int):
         """
@@ -260,16 +255,14 @@ class H2Protocol(asyncio.Protocol):
         except KeyError:
             # Unknown stream, log and ignore (the stream may already be ended)
             clientip = utils.get_client_ip(self.transport)
-            self.logger.info(
-                '[HTTPS] %s Unknown stream %d', clientip, stream_id
-            )
+            self.logger.info("[HTTPS] %s Unknown stream %d", clientip, stream_id)
         else:
             stream_data.data.write(data)
 
 
 def main():
     args = parse_args()
-    logger = utils.configure_logger('doh-proxy', args.level)
+    logger = utils.configure_logger("doh-proxy", args.level)
     ssl_ctx = utils.create_ssl_context(args, http2=True)
     loop = asyncio.get_event_loop()
     if "all" in args.listen_address:
@@ -284,14 +277,16 @@ def main():
                 uri=args.uri,
                 logger=logger,
                 debug=args.debug,
-                ecs=args.ecs),
+                ecs=args.ecs,
+            ),
             host=addr,
             port=args.port,
-            ssl=ssl_ctx)
+            ssl=ssl_ctx,
+        )
         server = loop.run_until_complete(coro)
 
         # Serve requests until Ctrl+C is pressed
-        logger.info('Serving on {}'.format(server))
+        logger.info("Serving on {}".format(server))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
@@ -303,5 +298,5 @@ def main():
     loop.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

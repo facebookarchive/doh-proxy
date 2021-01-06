@@ -18,47 +18,47 @@ from dohproxy import constants, utils
 
 
 class StubServerProtocol:
-
     def __init__(self, args, logger=None, client_store=None):
         self.logger = logger
         self.args = args
         self._lock = asyncio.Lock()
         if logger is None:
-            self.logger = utils.configure_logger('StubServerProtocol')
+            self.logger = utils.configure_logger("StubServerProtocol")
 
         # The client is wrapped in a mutable dictionary, so it may be shared
         # across multiple contexts if passed from higher in the chain.
         if client_store is None:
-            self.client_store = {'client': None}
+            self.client_store = {"client": None}
         else:
             self.client_store = client_store
 
     async def get_client(self, force_new=False):
         if force_new:
-            self.client_store['client'] = None
-        if self.client_store['client'] is not None:
-            if self.client_store['client']._conn is not None:
-                return self.client_store['client']
+            self.client_store["client"] = None
+        if self.client_store["client"] is not None:
+            if self.client_store["client"]._conn is not None:
+                return self.client_store["client"]
 
         # Open client connection
-        self.logger.debug('Opening connection to {}'.format(self.args.domain))
+        self.logger.debug("Opening connection to {}".format(self.args.domain))
         sslctx = utils.create_custom_ssl_context(
-            insecure=self.args.insecure,
-            cafile=self.args.cafile
+            insecure=self.args.insecure, cafile=self.args.cafile
         )
-        remote_addr = self.args.remote_address \
-            if self.args.remote_address else self.args.domain
+        remote_addr = (
+            self.args.remote_address if self.args.remote_address else self.args.domain
+        )
         client = await aioh2.open_connection(
             remote_addr,
             self.args.port,
             functional_timeout=0.1,
             ssl=sslctx,
-            server_hostname=self.args.domain)
+            server_hostname=self.args.domain,
+        )
         rtt = await client.wait_functional()
         if rtt:
-            self.logger.debug('Round-trip time: %.1fms' % (rtt * 1000))
+            self.logger.debug("Round-trip time: %.1fms" % (rtt * 1000))
 
-        self.client_store['client'] = client
+        self.client_store["client"] = client
         return client
 
     def connection_made(self, transport):
@@ -84,16 +84,16 @@ class StubServerProtocol:
         return await client.send_data(stream_id, body, end_stream=True)
 
     def on_recv_response(self, stream_id, headers):
-        self.logger.debug('Response headers: {}'.format(headers))
+        self.logger.debug("Response headers: {}".format(headers))
 
     def _make_get_path(self, content):
         params = utils.build_query_params(content)
-        self.logger.debug('Query parameters: {}'.format(params))
+        self.logger.debug("Query parameters: {}".format(params))
         params_str = urllib.parse.urlencode(params)
         if self.args.debug:
             url = utils.make_url(self.args.domain, self.args.uri)
-            self.logger.debug('Sending {}?{}'.format(url, params_str))
-        return self.args.uri + '?' + params_str
+            self.logger.debug("Sending {}?{}".format(url, params_str))
+        return self.args.uri + "?" + params_str
 
     async def make_request(self, addr, dnsq):
 
@@ -105,24 +105,22 @@ class StubServerProtocol:
         path = self.args.uri
         qid = dnsq.id
         dnsq.id = 0
-        body = b''
+        body = b""
 
         headers = [
-            (':authority', self.args.domain),
-            (':method', self.args.post and 'POST' or 'GET'),
-            (':scheme', 'https'),
-            ('Accept', constants.DOH_MEDIA_TYPE),
+            (":authority", self.args.domain),
+            (":method", self.args.post and "POST" or "GET"),
+            (":scheme", "https"),
+            ("Accept", constants.DOH_MEDIA_TYPE),
         ]
         if self.args.post:
-            headers.append(('content-type', constants.DOH_MEDIA_TYPE))
+            headers.append(("content-type", constants.DOH_MEDIA_TYPE))
             body = dnsq.to_wire()
         else:
             path = self._make_get_path(dnsq.to_wire())
 
-        headers.insert(0, (':path', path))
-        headers.extend([
-            ('content-length', str(len(body))),
-        ])
+        headers.insert(0, (":path", path))
+        headers.extend([("content-length", str(len(body)))])
         # Start request with headers
         # FIXME: Find a better way to close old streams. See GH#11
         try:
@@ -131,9 +129,7 @@ class StubServerProtocol:
             client = await self.get_client(force_new=True)
             stream_id = await self.on_start_request(client, headers, not body)
         self.logger.debug(
-            'Stream ID: {} / Total streams: {}'.format(
-                stream_id, len(client._streams)
-            )
+            "Stream ID: {} / Total streams: {}".format(stream_id, len(client._streams))
         )
         # Send my name "world" as whole request body
         if body:
@@ -153,7 +149,7 @@ class StubServerProtocol:
 
         # Read response trailers
         trailers = await client.recv_trailers(stream_id)
-        self.logger.debug('Response trailers: {}'.format(trailers))
+        self.logger.debug("Response trailers: {}".format(trailers))
 
 
 class StubServerProtocolUDP(StubServerProtocol):
@@ -171,19 +167,17 @@ class StubServerProtocolUDP(StubServerProtocol):
 class StubServerProtocolTCP(StubServerProtocol):
     def connection_made(self, transport):
         self.transport = transport
-        self.addr = transport.get_extra_info('peername')
-        self.buffer = b''
+        self.addr = transport.get_extra_info("peername")
+        self.buffer = b""
 
     def data_received(self, data):
-        self.buffer = utils.handle_dns_tcp_data(
-            self.buffer + data, self.receive_helper
-        )
+        self.buffer = utils.handle_dns_tcp_data(self.buffer + data, self.receive_helper)
 
     def receive_helper(self, dnsq):
         asyncio.ensure_future(self.make_request(self.addr, dnsq))
 
     def on_answer(self, addr, msg):
-        self.transport.write(struct.pack('!H', len(msg)) + msg)
+        self.transport.write(struct.pack("!H", len(msg)) + msg)
 
     def eof_received(self):
         self.transport.close()

@@ -51,9 +51,9 @@ jobs:
         uses: github/super-linter@v3
         env:
           VALIDATE_ALL_CODEBASE: false
+          # only lint python files in source and test direcotries
+          FILTER_REGEX_INCLUDE: (dohproxy|test)/.*.py
           # Code base currently not pylint compliant
           VALIDATE_PYTHON_PYLINT: false
-          # Code base currently not black compliant
-          VALIDATE_PYTHON_BLACK: false
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

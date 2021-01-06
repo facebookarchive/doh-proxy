@@ -17,7 +17,6 @@ from dohproxy import utils
 
 
 class DOHException(Exception):
-
     def body(self):
         return self.args[0]
 
@@ -30,7 +29,7 @@ class DOHDNSException(DOHException):
     pass
 
 
-class DNSClient():
+class DNSClient:
 
     DEFAULT_TIMEOUT = 10
 
@@ -39,12 +38,11 @@ class DNSClient():
         self.upstream_resolver = upstream_resolver
         self.upstream_port = upstream_port
         if logger is None:
-            logger = utils.configure_logger('DNSClient', 'DEBUG')
+            logger = utils.configure_logger("DNSClient", "DEBUG")
         self.logger = logger
         self.transport = None
 
-    async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT,
-                    ecs=False):
+    async def query(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT, ecs=False):
         # (Potentially) modified copy of dnsq
         dnsq_mod = dns.message.from_wire(dnsq.to_wire())
         we_set_ecs = False
@@ -67,18 +65,19 @@ class DNSClient():
         qid = dnsq.id
         fut = asyncio.Future()
         transport, _ = await self.loop.create_datagram_endpoint(
-            lambda: DNSClientProtocolUDP(
-                dnsq, fut, clientip, logger=self.logger),
-            remote_addr=(self.upstream_resolver, self.upstream_port))
+            lambda: DNSClientProtocolUDP(dnsq, fut, clientip, logger=self.logger),
+            remote_addr=(self.upstream_resolver, self.upstream_port),
+        )
         return await self._try_query(fut, qid, timeout, transport)
 
     async def query_tcp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         qid = dnsq.id
         fut = asyncio.Future()
         transport, _ = await self.loop.create_connection(
-            lambda: DNSClientProtocolTCP(
-                dnsq, fut, clientip, logger=self.logger),
-            self.upstream_resolver, self.upstream_port)
+            lambda: DNSClientProtocolTCP(dnsq, fut, clientip, logger=self.logger),
+            self.upstream_resolver,
+            self.upstream_port,
+        )
         return await self._try_query(fut, qid, timeout, transport)
 
     async def _try_query(self, fut, qid, timeout, transport):
@@ -87,7 +86,7 @@ class DNSClient():
             dnsr = fut.result()
             dnsr.id = qid
         except asyncio.TimeoutError:
-            self.logger.debug('Request timed out')
+            self.logger.debug("Request timed out")
             if transport:
                 transport.close()
             dnsr = None
@@ -95,14 +94,13 @@ class DNSClient():
 
 
 class DNSClientProtocol(asyncio.Protocol):
-
     def __init__(self, dnsq, fut, clientip, logger=None):
         self.transport = None
         self.dnsq = dnsq
         self.fut = fut
         self.clientip = clientip
         if logger is None:
-            logger = utils.configure_logger('DNSClientProtocol', 'DEBUG')
+            logger = utils.configure_logger("DNSClientProtocol", "DEBUG")
         self.logger = logger
 
     def connection_lost(self, exc):
@@ -127,32 +125,24 @@ class DNSClientProtocol(asyncio.Protocol):
         self.transport = transport
         self.dnsq.id = dns.entropy.random_16()
         self.logger.info(
-            '[DNS] {} {}'.format(
-                self.clientip,
-                utils.dnsquery2log(self.dnsq)
-            )
+            "[DNS] {} {}".format(self.clientip, utils.dnsquery2log(self.dnsq))
         )
         self.time_stamp = time.time()
 
     def receive_helper(self, dnsr):
         interval = int((time.time() - self.time_stamp) * 1000)
-        log_message = (
-            '[DNS] {} {} {}ms'.format(
-                self.clientip,
-                utils.dnsans2log(dnsr),
-                interval
-            )
+        log_message = "[DNS] {} {} {}ms".format(
+            self.clientip, utils.dnsans2log(dnsr), interval
         )
 
         if not self.fut.cancelled():
             self.logger.info(log_message)
             self.fut.set_result(dnsr)
         else:
-            self.logger.info(log_message + '(CANCELLED)')
+            self.logger.info(log_message + "(CANCELLED)")
 
 
 class DNSClientProtocolUDP(DNSClientProtocol):
-
     def connection_made(self, transport):
         self.send_helper(transport)
         self.transport.sendto(self.dnsq.to_wire())
@@ -164,11 +154,10 @@ class DNSClientProtocolUDP(DNSClientProtocol):
 
     def error_received(self, exc):
         self.transport.close()
-        self.logger.exception('Error received: ' + str(exc))
+        self.logger.exception("Error received: " + str(exc))
 
 
 class DNSClientProtocolTCP(DNSClientProtocol):
-
     def __init__(self, dnsq, fut, clientip, logger=None):
         super().__init__(dnsq, fut, clientip, logger=logger)
         self.buffer = bytes()
@@ -176,15 +165,13 @@ class DNSClientProtocolTCP(DNSClientProtocol):
     def connection_made(self, transport):
         self.send_helper(transport)
         msg = self.dnsq.to_wire()
-        tcpmsg = struct.pack('!H', len(msg)) + msg
+        tcpmsg = struct.pack("!H", len(msg)) + msg
         self.transport.write(tcpmsg)
 
     def data_received(self, data):
-        self.buffer = utils.handle_dns_tcp_data(
-            self.buffer + data, self.receive_helper
-        )
+        self.buffer = utils.handle_dns_tcp_data(self.buffer + data, self.receive_helper)
 
     def eof_received(self):
         if len(self.buffer) > 0:
-            self.logger.debug('Discard incomplete message')
+            self.logger.debug("Discard incomplete message")
         self.transport.close()
