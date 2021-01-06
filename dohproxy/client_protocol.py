@@ -7,13 +7,13 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-import aioh2
 import asyncio
-import dns.message
-import priority
 import struct
 import urllib.parse
 
+import aioh2
+import dns.message
+import priority
 from dohproxy import constants, utils
 
 

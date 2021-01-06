@@ -7,18 +7,18 @@
 # LICENSE file in the root directory of this source tree.
 #
 
-import asyncio
 import argparse
-import colour_runner.runner
-import dns.message
+import asyncio
 import inspect
 import sys
 import unittest
-
-from dohproxy import client_protocol, constants, utils
 from functools import wraps
-from pygments import highlight
 from unittest.mock import patch
+
+import colour_runner.runner
+import dns.message
+from dohproxy import client_protocol, constants, utils
+from pygments import highlight
 
 
 def async_test(f):

@@ -7,20 +7,16 @@
 # LICENSE file in the root directory of this source tree.
 #
 
+import logging
+from unittest.mock import MagicMock, patch
+
 import aiohttp
 import aiohttp_remotes
 import asynctest
 import dns.message
-import logging
-
 from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
-
-from dohproxy import constants
-from dohproxy import httpproxy
-from dohproxy import utils
-from dohproxy import server_protocol
+from dohproxy import constants, httpproxy, server_protocol, utils
 from dohproxy.server_protocol import DNSClient
-from unittest.mock import MagicMock, patch
 
 
 def echo_dns_q(q):

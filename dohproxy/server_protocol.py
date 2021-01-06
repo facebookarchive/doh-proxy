@@ -7,12 +7,12 @@
 # LICENSE file in the root directory of this source tree.
 #
 import asyncio
-import dns.edns
-import dns.entropy
-import dns.message
 import struct
 import time
 
+import dns.edns
+import dns.entropy
+import dns.message
 from dohproxy import utils
 
 

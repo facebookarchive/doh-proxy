@@ -10,7 +10,6 @@ import asyncio
 
 from dohproxy import client_protocol, utils
 
-
 # CLIENT_STORE['client'] is shared by all handlers.
 CLIENT_STORE = {'client': None}
 

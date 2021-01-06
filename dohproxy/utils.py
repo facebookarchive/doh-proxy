@@ -8,12 +8,8 @@
 #
 import argparse
 import asyncio
-import binascii
 import base64
-import dns.edns
-import dns.exception
-import dns.message
-import dns.rcode
+import binascii
 import ipaddress
 import logging
 import ssl
@@ -21,14 +17,19 @@ import struct
 import sys
 import urllib.parse
 
+import dns.edns
+import dns.exception
+import dns.message
+import dns.rcode
+
 try:
     import netifaces
 except ImportError as e:
     # Optional module
     netifaces = e
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
-from dohproxy import constants, server_protocol, __version__
+from dohproxy import __version__, constants, server_protocol
 
 
 def get_client_ip(transport: asyncio.BaseTransport) -> Tuple[str, None]:

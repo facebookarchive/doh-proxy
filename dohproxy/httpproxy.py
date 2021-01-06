@@ -6,22 +6,21 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
+import asyncio
+import time
+from argparse import ArgumentParser, Namespace
+
 import aiohttp.web
 import aiohttp_remotes
-import asyncio
 import dns.message
 import dns.rcode
-import time
-
-from argparse import ArgumentParser, Namespace
-from multidict import CIMultiDict
-
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
     DNSClient,
     DOHDNSException,
     DOHParamsException,
 )
+from multidict import CIMultiDict
 
 
 def parse_args(args=None):

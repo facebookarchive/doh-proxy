@@ -7,12 +7,12 @@
 # LICENSE file in the root directory of this source tree.
 #
 import asyncio
-import dns
-import dns.message
 import struct
 import unittest
-
 from unittest.mock import patch
+
+import dns
+import dns.message
 from dohproxy.server_protocol import DNSClientProtocolTCP
 
 

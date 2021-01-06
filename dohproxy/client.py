@@ -7,8 +7,8 @@
 # LICENSE file in the root directory of this source tree.
 #
 import asyncio
-import dns.message
 
+import dns.message
 from dohproxy import client_protocol, utils
 
 

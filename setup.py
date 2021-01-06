@@ -6,12 +6,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 #
-from setuptools import setup
-
+import re
 from codecs import open
 from os import path
 
-import re
+from setuptools import setup
 
 here = path.abspath(path.dirname(__file__))
 

@@ -8,12 +8,12 @@
 #
 
 import asyncio
-import asynctest
-import dns
-import dns.message
 import os
 import unittest
 
+import asynctest
+import dns
+import dns.message
 from dohproxy import client_protocol, utils
 
 TEST_TIMEOUT = 3.0

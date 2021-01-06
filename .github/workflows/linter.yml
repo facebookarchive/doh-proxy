@@ -55,7 +55,5 @@ jobs:
           VALIDATE_PYTHON_PYLINT: false
           # Code base currently not black compliant
           VALIDATE_PYTHON_BLACK: false
-          # Code base currently not isort compliant
-          VALIDATE_PYTHON_ISORT: false
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

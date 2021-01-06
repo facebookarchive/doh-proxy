@@ -8,28 +8,27 @@
 #
 import asyncio
 import collections
-import dns.message
-import dns.rcode
 import io
 import time
+from typing import List, Tuple
 
+import dns.message
+import dns.rcode
 from dohproxy import constants, utils
 from dohproxy.server_protocol import (
     DNSClient,
     DOHDNSException,
     DOHParamsException,
 )
-
-
-from typing import List, Tuple
-
 from h2.config import H2Configuration
 from h2.connection import H2Connection
 from h2.events import (
-    ConnectionTerminated, DataReceived, RequestReceived, StreamEnded
+    ConnectionTerminated,
+    DataReceived,
+    RequestReceived,
+    StreamEnded,
 )
 from h2.exceptions import ProtocolError
-
 
 RequestData = collections.namedtuple('RequestData', ['headers', 'data'])
 

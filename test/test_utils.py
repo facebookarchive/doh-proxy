@@ -7,23 +7,22 @@
 # LICENSE file in the root directory of this source tree.
 #
 
+import argparse
 import binascii
-import dns.message
-import dns.rcode
 import ssl
 import tempfile
 import unittest
-import argparse
+
+import dns.message
+import dns.rcode
 
 try:
     import netifaces
 except ImportError as e:
     netifaces = e
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from dohproxy import constants
-from dohproxy import server_protocol
-from dohproxy import utils
+from dohproxy import constants, server_protocol, utils
 from unittest_data_provider import data_provider
 
 # Randomly generated source of words/b64
