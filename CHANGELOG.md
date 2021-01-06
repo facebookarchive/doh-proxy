@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Fixed
+- fix unittests pattern matching. GH #78
+- force aiohttp < 4.0.0. GH #78
+- close transport on Timeout. GH #79
+- don't decode body twice. GH #83 @tiran
+- handle get\_extra\_info('peername') being None. GH #89
+- add legal link to web site. GH #90
+- define flake8 defaults. GH #91 @rfinnie
+- set `Accept` header in client queries. GH #95
+
+### Changes
+- improve logging. GH #87
+- support multiple --listen-address. GH 85 @rfinnie
+- Add support for ECS. GH #88 @rfinnie
+
 ## [0.0.9] - 2019-07-04
 
 ### Fixed
