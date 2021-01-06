@@ -167,10 +167,14 @@ $ python3 setup.py test
 ```
 
 To run the linter:
+
+DOH Proxy uses GitHub Action [Super-Linter](https://github.com/marketplace/actions/super-linter) to lint the code. In order to validate your code locally, it is possible to run Super-Linter locally using the following comand line from within the repository:
+
 ```shell
-$ python3 setup.py flake8
-# Also run flake8 on the testing files
-$ flake8 test
+docker run -e RUN_LOCAL=true  -e VALIDATE_PYTHON_PYLINT=false \
+    -e FILTER_REGX_INCLUDE='(dohproxy|test)/.*.py' \
+    -v $(pwd):/tmp/lint \
+     --rm github/super-linter:v3
 ```
 
 From within the root of the repository, you can test the proxy, stub and client respectively
