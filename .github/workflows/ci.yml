@@ -1,0 +1,78 @@
+---
+#######################
+#######################
+## CI GitHub Actions ##
+#######################
+#######################
+name: Test Code Base
+
+#
+# Documentation:
+# https://help.github.com/en/articles/workflow-syntax-for-github-actions
+#
+
+#############################
+# Start the job on all push #
+#############################
+on:
+  push:
+  pull_request:
+    branches: [master]
+
+###############
+# Set the Job #
+###############
+jobs:
+  build:
+    # Name the Job
+    name: Test Code Base
+    # Set the agent to run on
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+
+    ##################
+    # Load all steps #
+    ##################
+    steps:
+      ##########################
+      # Checkout the code base #
+      ##########################
+      - name: Checkout Code
+        uses: actions/checkout@v2
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      ##############################
+      # Install Python Environemts #
+      ##############################
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      ###############################
+      # Run Test against code base #
+      ###############################
+      - name: Install Dependencies
+        run: |
+          python setup.py develop
+          pip install git+https://github.com/URenko/aioh2#egg=aioh2
+      - name: Test Code Base
+        run: python setup.py test
+      ####################
+      # Install binaries #
+      ####################
+      - name: Install Binaries
+        run: python setup.py install
+      - name: Test dependencies
+        run: |
+          doh-proxy -h
+          doh-httpproxy -h
+          doh-stub -h
+          doh-client -h
+      - name: Build Wheel
+        run: |
+          pip install wheel
+          python setup.py bdist_wheel

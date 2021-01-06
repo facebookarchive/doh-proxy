@@ -395,7 +395,5 @@ def set_dns_ecs(dnsq, ip):
             address=ip_supernet.network_address.compressed, srclen=ip_supernet_bits,
         )
     )
-    dnsq.edns = 0  # 0 == True
-    dnsq.options = options
-
+    dnsq.use_edns(edns=0, ednsflags=dnsq.ednsflags, options=options)
     return True
