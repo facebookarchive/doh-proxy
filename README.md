@@ -154,6 +154,8 @@ To install its dependencies:
 
 ```shell
 $ python3 setup.py develop
+# Due to GH #63
+$ pip install git+https://github.com/URenko/aioh2#egg=aioh2
 ```
 
 To build:

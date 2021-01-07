@@ -426,14 +426,14 @@ class TestHandleDNSTCPData(unittest.TestCase):
 
 class TestDNSECS(unittest.TestCase):
     def test_set_dns_ecs_ipv4(self):
-        dnsq = dns.message.Message()
+        dnsq = dns.message.make_query("www.example.com", rdtype="A")
         utils.set_dns_ecs(dnsq, "10.0.0.242")
         self.assertEqual(dnsq.edns, 0)
         self.assertEqual(dnsq.options[0].address, "10.0.0.0")
         self.assertEqual(dnsq.options[0].srclen, 24)
 
     def test_set_dns_ecs_ipv6(self):
-        dnsq = dns.message.Message()
+        dnsq = dns.message.make_query("www.example.com", rdtype="A")
         utils.set_dns_ecs(dnsq, "2000::aa")
         self.assertEqual(dnsq.edns, 0)
         self.assertEqual(dnsq.options[0].address, "2000::")
