@@ -3,7 +3,8 @@ layout: default
 ---
 # DNS Over HTTPS Proxy
 
-[![Build Status](https://travis-ci.org/facebookexperimental/doh-proxy.svg?branch=master)](https://travis-ci.org/facebookexperimental/doh-proxy)
+![Test Code Base](https://github.com/facebookexperimental/doh-proxy/workflows/Test%20Code%20Base/badge.svg)
+[![GitHub Super-Linter](https://github.com/facebookexperimental/doh-proxy/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 [![PyPI version](https://badge.fury.io/py/doh-proxy.svg)](https://badge.fury.io/py/doh-proxy)
 
 A set of python 3 scripts that supports proxying DNS over HTTPS as specified
