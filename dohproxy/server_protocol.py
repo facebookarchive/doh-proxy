@@ -85,7 +85,11 @@ class DNSClient:
                 timeout,
             )
         except asyncio.TimeoutError:
-            # Failed to connect to the resolver
+            self.logger.debug(
+                "Timeout connecting to upstream resolver {}:{}".format(
+                    self.upstream_resolver, self.upstream_port
+                )
+            )
             return None
 
         return await self._try_query(fut, qid, timeout, transport)
