@@ -73,11 +73,25 @@ class DNSClient:
     async def query_tcp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         qid = dnsq.id
         fut = asyncio.Future()
-        transport, _ = await self.loop.create_connection(
-            lambda: DNSClientProtocolTCP(dnsq, fut, clientip, logger=self.logger),
-            self.upstream_resolver,
-            self.upstream_port,
-        )
+        try:
+            transport, _ = await asyncio.wait_for(
+                self.loop.create_connection(
+                    lambda: DNSClientProtocolTCP(
+                        dnsq, fut, clientip, logger=self.logger
+                    ),
+                    self.upstream_resolver,
+                    self.upstream_port,
+                ),
+                timeout,
+            )
+        except asyncio.TimeoutError:
+            self.logger.debug(
+                "Timeout connecting to upstream resolver {}:{}".format(
+                    self.upstream_resolver, self.upstream_port
+                )
+            )
+            return None
+
         return await self._try_query(fut, qid, timeout, transport)
 
     async def _try_query(self, fut, qid, timeout, transport):
