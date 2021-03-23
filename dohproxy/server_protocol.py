@@ -73,6 +73,7 @@ class DNSClient:
     async def query_tcp(self, dnsq, clientip, timeout=DEFAULT_TIMEOUT):
         qid = dnsq.id
         fut = asyncio.Future()
+        start_time = time.time()
         try:
             transport, _ = await asyncio.wait_for(
                 self.loop.create_connection(
@@ -92,7 +93,10 @@ class DNSClient:
             )
             return None
 
-        return await self._try_query(fut, qid, timeout, transport)
+        end_time = time.time()
+        return await self._try_query(
+            fut, qid, timeout - (end_time - start_time), transport
+        )
 
     async def _try_query(self, fut, qid, timeout, transport):
         try:
