@@ -5,6 +5,7 @@ description: A DNS-over-HTTPS Proxy
 repository: facebookexperimental/doh-proxy
 theme: jekyll-theme-slate
 timezone: America/Los_Angeles
+
 sass:
   style: compressed
 markdown: kramdown
